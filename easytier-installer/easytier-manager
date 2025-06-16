@@ -1,0 +1,356 @@
+#!/bin/bash
+
+# 🎛️ مدیر EasyTier - منوی تعاملی
+# نسخه: 1.0
+# هدف: مدیریت ساده EasyTier با 6 گزینه اصلی
+
+set -e
+
+# رنگ‌ها
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+PURPLE='\033[0;35m'
+NC='\033[0m' # No Color
+
+# مسیرها
+CONFIG_DIR="/etc/easytier"
+LOG_FILE="/var/log/easytier.log"
+SERVICE_NAME="easytier"
+
+# =============================================================================
+# توابع کمکی
+# =============================================================================
+
+print_header() {
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗"
+    echo "║                          🎛️  EasyTier Manager                           ║"
+    echo "║                         مدیریت ساده شبکه تانل                          ║"
+    echo "╚══════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo
+}
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+press_any_key() {
+    echo -e "\n${YELLOW}برای ادامه هر کلیدی را فشار دهید...${NC}"
+    read -n 1 -s
+}
+
+# =============================================================================
+# گزینه 1: شروع سرویس
+# =============================================================================
+
+start_service() {
+    echo -e "${GREEN}=== شروع سرویس EasyTier ===${NC}"
+    echo
+    
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        log_warning "سرویس EasyTier قبلاً در حال اجرا است"
+        systemctl status "$SERVICE_NAME" --no-pager -l
+    else
+        log_info "شروع سرویس EasyTier..."
+        if systemctl start "$SERVICE_NAME"; then
+            log_success "سرویس با موفقیت شروع شد"
+            sleep 2
+            systemctl status "$SERVICE_NAME" --no-pager -l
+        else
+            log_error "خطا در شروع سرویس"
+            log_info "لاگ خطا:"
+            journalctl -u "$SERVICE_NAME" --no-pager -l | tail -10
+        fi
+    fi
+    
+    press_any_key
+}
+
+# =============================================================================
+# گزینه 2: توقف سرویس
+# =============================================================================
+
+stop_service() {
+    echo -e "${RED}=== توقف سرویس EasyTier ===${NC}"
+    echo
+    
+    if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+        log_warning "سرویس EasyTier در حال اجرا نیست"
+    else
+        log_info "توقف سرویس EasyTier..."
+        if systemctl stop "$SERVICE_NAME"; then
+            log_success "سرویس با موفقیت متوقف شد"
+        else
+            log_error "خطا در توقف سرویس"
+        fi
+    fi
+    
+    # نمایش وضعیت نهایی
+    systemctl status "$SERVICE_NAME" --no-pager -l || true
+    
+    press_any_key
+}
+
+# =============================================================================
+# گزینه 3: نمایش وضعیت
+# =============================================================================
+
+show_status() {
+    echo -e "${BLUE}=== وضعیت EasyTier ===${NC}"
+    echo
+    
+    # وضعیت سرویس
+    echo -e "${CYAN}📊 وضعیت سرویس:${NC}"
+    systemctl status "$SERVICE_NAME" --no-pager -l || true
+    echo
+    
+    # بررسی اتصال
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        echo -e "${CYAN}🔗 اطلاعات اتصال:${NC}"
+        
+        # نمایش peers (اگر easytier-cli موجود باشد)
+        if command -v easytier-cli &> /dev/null; then
+            echo "Peers متصل:"
+            easytier-cli peer 2>/dev/null || echo "  عدم دسترسی به اطلاعات peer"
+            echo
+            
+            echo "Routes فعال:"
+            easytier-cli route 2>/dev/null || echo "  عدم دسترسی به اطلاعات route"
+        else
+            log_warning "easytier-cli یافت نشد"
+        fi
+        
+        echo
+        echo -e "${CYAN}📡 آمار شبکه (آخرین 5 خط لاگ):${NC}"
+        journalctl -u "$SERVICE_NAME" --no-pager -l | tail -5
+    else
+        log_warning "سرویس در حال اجرا نیست"
+    fi
+    
+    press_any_key
+}
+
+# =============================================================================
+# گزینه 4: مدیریت Peers
+# =============================================================================
+
+manage_peers() {
+    echo -e "${PURPLE}=== مدیریت Peers ===${NC}"
+    echo
+    
+    if ! command -v easytier-cli &> /dev/null; then
+        log_error "easytier-cli یافت نشد"
+        press_any_key
+        return
+    fi
+    
+    if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+        log_warning "سرویس EasyTier در حال اجرا نیست"
+        echo "ابتدا سرویس را شروع کنید"
+        press_any_key
+        return
+    fi
+    
+    while true; do
+        echo -e "${PURPLE}=== منوی مدیریت Peers ===${NC}"
+        echo "1) نمایش peers متصل"
+        echo "2) اضافه کردن peer جدید"
+        echo "3) ping تست"
+        echo "4) بازگشت به منوی اصلی"
+        echo
+        read -p "انتخاب کنید [1-4]: " peer_choice
+        
+        case $peer_choice in
+            1)
+                echo -e "\n${CYAN}Peers متصل:${NC}"
+                easytier-cli peer 2>/dev/null || log_error "خطا در دریافت اطلاعات peers"
+                echo
+                ;;
+            2)
+                echo
+                read -p "IP:Port peer جدید (مثال: 1.2.3.4:11011): " new_peer
+                if [[ -n "$new_peer" ]]; then
+                    log_info "اضافه کردن peer: $new_peer"
+                    log_warning "💡 برای اضافه کردن دائمی، فایل config را ویرایش کنید:"
+                    echo "   sudo nano $CONFIG_DIR/config.yml"
+                else
+                    log_error "IP:Port معتبر وارد نکردید"
+                fi
+                echo
+                ;;
+            3)
+                echo
+                read -p "IP مقصد برای ping (مثال: 10.145.0.1): " ping_ip
+                if [[ -n "$ping_ip" ]]; then
+                    log_info "تست ping به $ping_ip..."
+                    ping -c 3 "$ping_ip" || log_error "ping ناموفق"
+                else
+                    log_error "IP معتبر وارد نکردید"
+                fi
+                echo
+                ;;
+            4)
+                return
+                ;;
+            *)
+                log_error "گزینه نامعتبر"
+                ;;
+        esac
+        
+        press_any_key
+        echo
+    done
+}
+
+# =============================================================================
+# گزینه 5: مدیریت شبکه
+# =============================================================================
+
+manage_network() {
+    echo -e "${YELLOW}=== مدیریت شبکه ===${NC}"
+    echo
+    
+    while true; do
+        echo -e "${YELLOW}=== منوی مدیریت شبکه ===${NC}"
+        echo "1) نمایش پیکربندی فعلی"
+        echo "2) ویرایش تنظیمات شبکه"
+        echo "3) restart سرویس (اعمال تغییرات)"
+        echo "4) تست اتصال"
+        echo "5) بازگشت به منوی اصلی"
+        echo
+        read -p "انتخاب کنید [1-5]: " network_choice
+        
+        case $network_choice in
+            1)
+                echo -e "\n${CYAN}پیکربندی فعلی:${NC}"
+                if [[ -f "$CONFIG_DIR/config.yml" ]]; then
+                    cat "$CONFIG_DIR/config.yml"
+                else
+                    log_error "فایل config یافت نشد"
+                fi
+                echo
+                ;;
+            2)
+                echo
+                log_info "ویرایش فایل پیکربندی..."
+                if command -v nano &> /dev/null; then
+                    nano "$CONFIG_DIR/config.yml"
+                elif command -v vi &> /dev/null; then
+                    vi "$CONFIG_DIR/config.yml"
+                else
+                    log_error "ویرایشگر متنی یافت نشد"
+                fi
+                ;;
+            3)
+                echo
+                log_info "راه‌اندازی مجدد سرویس..."
+                systemctl restart "$SERVICE_NAME" && log_success "سرویس راه‌اندازی شد" || log_error "خطا در راه‌اندازی"
+                ;;
+            4)
+                echo
+                log_info "تست اتصال به شبکه..."
+                if systemctl is-active --quiet "$SERVICE_NAME"; then
+                    log_success "سرویس فعال است"
+                    
+                    # تست ping به gateway تانل
+                    local gateway_ip=$(grep "ipv4:" "$CONFIG_DIR/config.yml" 2>/dev/null | cut -d'"' -f2 | head -1)
+                    if [[ -n "$gateway_ip" ]]; then
+                        log_info "تست ping به $gateway_ip..."
+                        ping -c 2 "$gateway_ip" && log_success "ping موفق" || log_warning "ping ناموفق"
+                    fi
+                else
+                    log_error "سرویس فعال نیست"
+                fi
+                echo
+                ;;
+            5)
+                return
+                ;;
+            *)
+                log_error "گزینه نامعتبر"
+                ;;
+        esac
+        
+        press_any_key
+        echo
+    done
+}
+
+# =============================================================================
+# منوی اصلی
+# =============================================================================
+
+show_main_menu() {
+    while true; do
+        print_header
+        
+        # نمایش وضعیت کلی
+        local service_status
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            service_status="${GREEN}🟢 فعال${NC}"
+        else
+            service_status="${RED}🔴 غیرفعال${NC}"
+        fi
+        
+        echo -e "${CYAN}📊 وضعیت سرویس:${NC} $service_status"
+        echo -e "${CYAN}📁 مسیر Config:${NC} $CONFIG_DIR/config.yml"
+        echo -e "${CYAN}📄 لاگ فایل:${NC} $LOG_FILE"
+        echo
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
+        echo "1) 🚀 شروع سرویس"
+        echo "2) 🛑 توقف سرویس"  
+        echo "3) 📊 نمایش وضعیت"
+        echo "4) 🔗 مدیریت Peers"
+        echo "5) 🌐 مدیریت شبکه"
+        echo "6) 🚪 خروج"
+        echo
+        read -p "گزینه خود را انتخاب کنید [1-6]: " choice
+        
+        echo
+        case $choice in
+            1) start_service ;;
+            2) stop_service ;;
+            3) show_status ;;
+            4) manage_peers ;;
+            5) manage_network ;;
+            6) 
+                echo -e "${GREEN}خداحافظ! 👋${NC}"
+                exit 0
+                ;;
+            *)
+                log_error "گزینه نامعتبر. لطفاً عددی بین 1 تا 6 وارد کنید."
+                press_any_key
+                ;;
+        esac
+    done
+}
+
+# =============================================================================
+# اجرای برنامه
+# =============================================================================
+
+# بررسی دسترسی root
+if [[ $EUID -ne 0 ]]; then
+    echo -e "${RED}[ERROR]${NC} این اسکریپت باید با دسترسی root اجرا شود"
+    echo "استفاده: sudo $0"
+    exit 1
+fi
+
+# شروع منوی اصلی
+show_main_menu 
