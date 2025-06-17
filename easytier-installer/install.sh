@@ -244,6 +244,54 @@ get_latest_version() {
     print_success "آخرین نسخه: $LATEST_VERSION"
 }
 
+# توقف سرویس‌های موجود
+stop_existing_services() {
+    print_step "بررسی و توقف سرویس‌های موجود..."
+    
+    # توقف سرویس systemd (در صورت وجود)
+    if systemctl is-active easytier >/dev/null 2>&1; then
+        print_warning "سرویس easytier در حال اجرا است - متوقف می‌شود..."
+        systemctl stop easytier || print_warning "خطا در توقف سرویس"
+        sleep 2
+    fi
+    
+    # غیرفعال کردن سرویس اگر فعال باشد
+    if systemctl is-enabled easytier >/dev/null 2>&1; then
+        print_info "غیرفعال کردن سرویس قدیمی..."
+        systemctl disable easytier >/dev/null 2>&1 || true
+    fi
+    
+    # kill کردن فرآیندهای easytier
+    local easytier_pids=$(pgrep -f "easytier" 2>/dev/null || true)
+    if [[ -n "$easytier_pids" ]]; then
+        print_warning "فرآیندهای easytier یافت شد - متوقف می‌شوند..."
+        echo "$easytier_pids" | xargs -r kill -TERM 2>/dev/null || true
+        sleep 3
+        
+        # اگر هنوز در حال اجرا بودند، force kill
+        easytier_pids=$(pgrep -f "easytier" 2>/dev/null || true)
+        if [[ -n "$easytier_pids" ]]; then
+            print_warning "فرآیندها هنوز فعال هستند - force kill..."
+            echo "$easytier_pids" | xargs -r kill -KILL 2>/dev/null || true
+            sleep 1
+        fi
+    fi
+    
+    print_success "بررسی سرویس‌های موجود تکمیل شد"
+}
+
+# تمیز کردن فایل‌های backup
+cleanup_backups() {
+    print_info "تمیز کردن فایل‌های backup..."
+    
+    # حذف فایل‌های backup (در صورت وجود)
+    rm -f "$INSTALL_DIR/easytier-core.backup" 2>/dev/null || true
+    rm -f "$INSTALL_DIR/easytier-cli.backup" 2>/dev/null || true
+    rm -f "$INSTALL_DIR/moonmesh.backup" 2>/dev/null || true
+    
+    print_success "فایل‌های backup تمیز شدند"
+}
+
 # دانلود و نصب EasyTier
 download_and_install() {
     print_step "دانلود EasyTier..."
@@ -290,12 +338,64 @@ download_and_install() {
     
     # نصب فایل‌ها
     print_step "نصب فایل‌ها..."
-    chmod +x "$easytier_core" "$easytier_cli"
-    cp "$easytier_core" "$INSTALL_DIR/"
-    cp "$easytier_cli" "$INSTALL_DIR/"
     
-    # تمیز کردن فایل‌های موقت
+    # توقف سرویس‌های در حال اجرا (در صورت وجود)
+    stop_existing_services
+    
+    chmod +x "$easytier_core" "$easytier_cli"
+    
+    # تلاش برای copy با مدیریت خطا
+    if ! cp "$easytier_core" "$INSTALL_DIR/" 2>/dev/null; then
+        print_warning "فایل easytier-core در حال استفاده است - تلاش برای بروزرسانی..."
+        
+        # backup فایل قدیمی
+        if [[ -f "$INSTALL_DIR/easytier-core" ]]; then
+            mv "$INSTALL_DIR/easytier-core" "$INSTALL_DIR/easytier-core.backup" || {
+                print_error "نمی‌توان فایل قدیمی را جابجا کرد"
+                exit 1
+            }
+        fi
+        
+        # دوباره تلاش کنیم
+        cp "$easytier_core" "$INSTALL_DIR/" || {
+            print_error "خطا در کپی فایل easytier-core"
+            exit 1
+        }
+    fi
+    
+    if ! cp "$easytier_cli" "$INSTALL_DIR/" 2>/dev/null; then
+        print_warning "فایل easytier-cli در حال استفاده است - تلاش برای بروزرسانی..."
+        
+        # backup فایل قدیمی
+        if [[ -f "$INSTALL_DIR/easytier-cli" ]]; then
+            mv "$INSTALL_DIR/easytier-cli" "$INSTALL_DIR/easytier-cli.backup" || {
+                print_error "نمی‌توان فایل قدیمی را جابجا کرد"
+                exit 1
+            }
+        fi
+        
+        # دوباره تلاش کنیم
+        cp "$easytier_cli" "$INSTALL_DIR/" || {
+            print_error "خطا در کپی فایل easytier-cli"
+            exit 1
+        }
+    fi
+    
+    # دانلود moonmesh script
+    print_info "دانلود اسکریپت moonmesh..."
+    local moonmesh_url="https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/moonmesh"
+    curl -fsSL "$moonmesh_url" -o "$INSTALL_DIR/moonmesh" || {
+        print_warning "خطا در دانلود moonmesh - ادامه بدون منوی مدیریت"
+    }
+    
+    if [[ -f "$INSTALL_DIR/moonmesh" ]]; then
+        chmod +x "$INSTALL_DIR/moonmesh"
+        print_success "moonmesh نصب شد"
+    fi
+    
+    # تمیز کردن فایل‌های موقت و backup
     rm -rf "$temp_dir"
+    cleanup_backups
     
     print_success "EasyTier نصب شد در: $INSTALL_DIR"
 }
@@ -336,17 +436,88 @@ create_config_directory() {
 setup_basic_config() {
     print_step "ایجاد فایل پیکربندی اساسی..."
     
-    # مسیر config generator
-    local config_generator="$SCRIPT_DIR/utils/config-generator.sh"
+    # ایجاد فایل config ساده مستقیماً
+    local config_file="$CONFIG_DIR/config.yml"
     
-    if [[ -f "$config_generator" ]]; then
-        chmod +x "$config_generator"
-        "$config_generator" create
-        print_success "فایل پیکربندی اساسی ایجاد شد"
-        print_warning "⚠️  برای اتصال به peers، فایل /etc/easytier/config.yml را ویرایش کنید"
-    else
-        print_warning "config generator یافت نشد - فایل config دستی ایجاد کنید"
-    fi
+    cat > "$config_file" << 'EOF'
+# پیکربندی اساسی EasyTier
+# برای اتصال به شبکه، موارد زیر را تنظیم کنید:
+
+network_name: "my-network"
+network_secret: "my-secret-password"
+hostname: ""
+instance_name: ""
+
+# آدرس IP در شبکه مجازی
+ipv4: "10.145.0.2"
+
+# پیرها (peers) برای اتصال
+peers:
+  - "tcp://peer1.example.com:11010"
+  # - "tcp://peer2.example.com:11010"
+
+# پورت listening
+listeners:
+  - "tcp://0.0.0.0:11010"
+  - "udp://0.0.0.0:11011"
+
+# تنظیمات اضافی
+flags:
+  - "--enable-encryption"
+  - "--relay-all-peer-rpc"
+
+# لاگ
+log_level: "info"
+log_file: "/var/log/easytier.log"
+EOF
+
+    chmod 644 "$config_file"
+    
+    print_success "فایل پیکربندی اساسی ایجاد شد: $config_file"
+    print_warning "⚠️  برای اتصال به peers، فایل $config_file را ویرایش کنید"
+}
+
+# ایجاد سرویس systemd
+create_systemd_service() {
+    print_step "ایجاد سرویس systemd..."
+    
+    local service_file="$SERVICE_DIR/easytier.service"
+    
+    cat > "$service_file" << 'EOF'
+[Unit]
+Description=EasyTier P2P VPN Service
+Documentation=https://github.com/EasyTier/EasyTier
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/easytier
+ExecStart=/usr/local/bin/easytier-core --config-file /etc/easytier/config.yml
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=easytier
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/etc/easytier /var/log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # فعالسازی سرویس
+    systemctl daemon-reload
+    systemctl enable easytier
+    
+    print_success "سرویس systemd ایجاد و فعال شد"
+    print_info "استفاده: systemctl start easytier"
 }
 
 # نمایش خلاصه نصب
@@ -390,6 +561,7 @@ main() {
     test_installation
     create_config_directory
     setup_basic_config
+    create_systemd_service
     
     # نمایش خلاصه
     show_summary
