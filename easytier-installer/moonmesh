@@ -555,16 +555,16 @@ show_main_menu() {
         echo
         echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo
-        echo "1) 🚀 شروع سرویس"
-        echo "2) 🛑 توقف سرویس"  
-        echo "3) 📊 نمایش وضعیت"
-        echo "4) 🔗 مدیریت Peers"
-        echo "5) 🌐 مدیریت شبکه"
-        echo "6) ⚡ بهینه‌سازی Performance"
-        echo "7) 🔧 عیب‌یابی و تعمیر"
-        echo "8) 🚪 خروج"
+        echo "1) 🚀 Start Service"
+        echo "2) 🛑 Stop Service"  
+        echo "3) 📊 Show Status"
+        echo "4) 🔗 Manage Peers"
+        echo "5) 🌐 Manage Network"
+        echo "6) ⚡ Performance Optimization"
+        echo "7) 🔧 Troubleshooting"
+        echo "0) 🚪 Exit"
         echo
-        read -p "گزینه خود را انتخاب کنید [1-8]: " choice
+        read -p "Select your option [0-7]: " choice
         
         echo
         case $choice in
@@ -575,12 +575,12 @@ show_main_menu() {
             5) manage_network ;;
             6) performance_menu ;;
             7) troubleshooting_menu ;;
-            8) 
-                echo -e "${GREEN}خداحافظ! 👋${NC}"
+            0) 
+                echo -e "${GREEN}Goodbye! 👋${NC}"
                 exit 0
                 ;;
             *)
-                log_error "گزینه نامعتبر. لطفاً عددی بین 1 تا 8 وارد کنید."
+                log_error "Invalid option. Please enter a number between 0-7."
                 press_any_key
                 ;;
         esac

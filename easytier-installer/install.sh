@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # =============================================================================
-# 🚀 EasyTier نصب آسان 
-# اسکریپت نصب یک‌کلیکه برای EasyTier
+# 🚀 EasyTier Easy Installation 
+# One-click installation script for EasyTier
 # =============================================================================
 
-set -e  # توقف در صورت خطا
+set -e  # Stop on error
 
-# رنگ‌ها برای output زیبا
+# Colors for beautiful output
 RED='\033[0;31m'
 GREEN='\033[0;32m'  
 YELLOW='\033[1;33m'
@@ -16,7 +16,7 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# اطلاعات پروژه
+# Project information
 SCRIPT_VERSION="1.0.0"
 EASYTIER_REPO="EasyTier/EasyTier"
 INSTALL_DIR="/usr/local/bin"
@@ -25,15 +25,15 @@ SERVICE_DIR="/etc/systemd/system"
 LOG_FILE="/var/log/easytier-install.log"
 
 # =============================================================================
-# تابع‌های کمکی
+# Helper functions
 # =============================================================================
 
 print_banner() {
     echo -e "${CYAN}"
     echo "╔══════════════════════════════════════════════════╗"
-    echo "║               🚀 EasyTier نصب آسان              ║"
-    echo "║          اسکریپت نصب حرفه‌ای و سریع            ║"
-    echo "║                  نسخه: $SCRIPT_VERSION                  ║"
+    echo "║               🚀 EasyTier Easy Install           ║"
+    echo "║          Professional & Fast Installation        ║"
+    echo "║                  Version: $SCRIPT_VERSION                  ║"
     echo "╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -70,25 +70,25 @@ print_step() {
     log_message "STEP" "$1"
 }
 
-# بررسی دسترسی root
+# Check root access
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        print_error "این اسکریپت نیاز به دسترسی root دارد"
-        print_info "لطفاً با sudo اجرا کنید: sudo $0"
+        print_error "This script requires root access"
+        print_info "Please run with sudo: sudo $0"
         exit 1
     fi
 }
 
-# تشخیص سیستم عامل
+# Detect operating system
 detect_os() {
-    print_step "تشخیص سیستم عامل..."
+    print_step "Detecting operating system..."
     
     if [[ -f /etc/os-release ]]; then
         . /etc/os-release
         OS=$NAME
         OS_VERSION=$VERSION_ID
     else
-        print_error "نمی‌توان سیستم عامل را تشخیص داد"
+        print_error "Cannot detect operating system"
         exit 1
     fi
     
@@ -110,20 +110,20 @@ detect_os() {
             PACKAGE_MANAGER="dnf"
             ;;
         *)
-            print_warning "سیستم عامل شناسایی نشد: $OS"
-            print_info "ادامه با تنظیمات عمومی..."
+            print_warning "Unknown operating system: $OS"
+            print_info "Continuing with generic settings..."
             DISTRO="generic"
             PACKAGE_MANAGER="unknown"
             ;;
     esac
     
-    print_success "سیستم عامل: $OS"
+    print_success "Operating system: $OS"
     print_info "Distribution: $DISTRO"
 }
 
-# تشخیص معماری سیستم
+# Detect system architecture
 detect_architecture() {
-    print_step "تشخیص معماری سیستم..."
+    print_step "Detecting system architecture..."
     
     local arch=$(uname -m)
     case $arch in
@@ -140,19 +140,19 @@ detect_architecture() {
             EASYTIER_ARCH="armv7-unknown-linux-gnueabihf"
             ;;
         *)
-            print_error "معماری پشتیبانی نشده: $arch"
-            print_info "معماری‌های پشتیبانی شده: x86_64, aarch64, armv7l"
+            print_error "Unsupported architecture: $arch"
+            print_info "Supported architectures: x86_64, aarch64, armv7l"
             exit 1
             ;;
     esac
     
-    print_success "معماری: $ARCH"
+    print_success "Architecture: $ARCH"
     print_info "EasyTier target: $EASYTIER_ARCH"
 }
 
 # بررسی پیش‌نیازها
 check_prerequisites() {
-    print_step "بررسی پیش‌نیازها..."
+    print_step "Checking prerequisites..."
     
     local missing_tools=()
     
@@ -189,7 +189,7 @@ check_prerequisites() {
 # نصب پیش‌نیازها
 install_prerequisites() {
     local tools=("$@")
-    print_step "نصب پیش‌نیازها..."
+    print_step "Installing prerequisites..."
     
     case $PACKAGE_MANAGER in
         "apt")
@@ -223,7 +223,7 @@ install_prerequisites() {
 
 # دریافت آخرین نسخه
 get_latest_version() {
-    print_step "دریافت اطلاعات آخرین نسخه..."
+    print_step "Getting latest version information..."
     
     local api_url="https://api.github.com/repos/$EASYTIER_REPO/releases/latest"
     
@@ -246,7 +246,7 @@ get_latest_version() {
 
 # توقف سرویس‌های موجود
 stop_existing_services() {
-    print_step "بررسی و توقف سرویس‌های موجود..."
+    print_step "Checking and stopping existing services..."
     
     # توقف سرویس systemd (در صورت وجود)
     if systemctl is-active easytier >/dev/null 2>&1; then
@@ -294,7 +294,7 @@ cleanup_backups() {
 
 # دانلود و نصب EasyTier
 download_and_install() {
-    print_step "دانلود EasyTier..."
+    print_step "Downloading EasyTier..."
     
     # فرمت اسم فایل صحیح از GitHub releases
     local archive_name="easytier-linux-$ARCH-$LATEST_VERSION.zip"
@@ -320,7 +320,7 @@ download_and_install() {
     print_success "دانلود کامل شد"
     
     # استخراج فایل‌ها
-    print_step "استخراج فایل‌ها..."
+    print_step "Extracting files..."
     cd "$temp_dir"
     unzip -q "$archive_file" || {
         print_error "خطا در استخراج فایل"
@@ -337,7 +337,7 @@ download_and_install() {
     fi
     
     # نصب فایل‌ها
-    print_step "نصب فایل‌ها..."
+    print_step "Installing files..."
     
     # توقف سرویس‌های در حال اجرا (در صورت وجود)
     stop_existing_services
@@ -391,7 +391,7 @@ download_and_install() {
     if [[ -f "$INSTALL_DIR/moonmesh" ]]; then
         chmod +x "$INSTALL_DIR/moonmesh"
         print_success "moonmesh نصب شد"
-    fi
+    fi8
     
     # تمیز کردن فایل‌های موقت و backup
     rm -rf "$temp_dir"
@@ -402,7 +402,7 @@ download_and_install() {
 
 # تست نصب
 test_installation() {
-    print_step "تست نصب..."
+    print_step "Testing installation..."
     
     if ! command -v easytier-core &> /dev/null; then
         print_error "easytier-core در PATH یافت نشد"
@@ -424,7 +424,7 @@ test_installation() {
 
 # ایجاد دایرکتوری config
 create_config_directory() {
-    print_step "ایجاد دایرکتوری پیکربندی..."
+    print_step "Creating configuration directory..."
     
     mkdir -p "$CONFIG_DIR"
     chmod 755 "$CONFIG_DIR"
@@ -434,7 +434,7 @@ create_config_directory() {
 
 # ایجاد فایل پیکربندی اساسی
 setup_basic_config() {
-    print_step "ایجاد فایل پیکربندی اساسی..."
+    print_step "Creating basic configuration file..."
     
     # ایجاد فایل config ساده مستقیماً
     local config_file="$CONFIG_DIR/config.yml"
@@ -479,7 +479,7 @@ EOF
 
 # ایجاد سرویس systemd
 create_systemd_service() {
-    print_step "ایجاد سرویس systemd..."
+    print_step "Creating systemd service..."
     
     local service_file="$SERVICE_DIR/easytier.service"
     
