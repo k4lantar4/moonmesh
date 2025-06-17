@@ -391,7 +391,7 @@ download_and_install() {
     if [[ -f "$INSTALL_DIR/moonmesh" ]]; then
         chmod +x "$INSTALL_DIR/moonmesh"
         print_success "moonmesh نصب شد"
-    fi8
+    fi
     
     # تمیز کردن فایل‌های موقت و backup
     rm -rf "$temp_dir"
