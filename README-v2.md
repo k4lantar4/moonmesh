@@ -18,13 +18,13 @@
 ## 🚀 نصب یک‌کلیکه
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install-v2.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
 ```
 
 ## 🎮 استفاده فوری
 
 ```bash
-sudo moonmesh-v2
+sudo moonmesh
 ```
 
 ## 🎯 منوی اصلی
@@ -91,22 +91,22 @@ sudo moonmesh-v2
 
 ```bash
 # نصب
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install-v2.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
 
 # مدیریت
-sudo moonmesh-v2
+sudo moonmesh
 
 # اتصال سریع (دستوری)
-sudo moonmesh-v2 quick-connect
+sudo moonmesh quick-connect
 
 # نمایش peers
-sudo moonmesh-v2 peers
+sudo moonmesh peers
 
 # وضعیت سرویس
-sudo moonmesh-v2 status
+sudo moonmesh status
 
 # حذف کامل
-sudo moonmesh-v2 remove
+sudo moonmesh remove
 ```
 
 ## 🔧 پیکربندی خودکار
@@ -146,7 +146,7 @@ sudo ufw allow 11011
 sudo firewall-cmd --add-port=11011/udp --permanent
 
 # تست پورت
-sudo moonmesh-v2 ping-test
+sudo moonmesh ping-test
 ```
 
 #### 2. سرویس شروع نمی‌شود
@@ -155,7 +155,7 @@ sudo moonmesh-v2 ping-test
 sudo journalctl -u easytier.service -f
 
 # ری‌استارت
-sudo moonmesh-v2 restart
+sudo moonmesh restart
 ```
 
 ## 📊 مانیتورینگ زنده
@@ -188,10 +188,10 @@ sudo moonmesh-v2 restart
 sudo moonmesh uninstall
 
 # نصب نسخه جدید
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install-v2.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
 
 # استفاده
-sudo moonmesh-v2
+sudo moonmesh
 ```
 
 ## 🤝 مشارکت

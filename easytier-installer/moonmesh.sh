@@ -1,4 +1,4 @@
-./#!/bin/bash
+#!/bin/bash
 
 # 🌐 EasyTier Manager v2.0 - مشابه Easy-Mesh
 # BMad Master - Inspired by Musixal/Easy-Mesh
