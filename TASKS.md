@@ -86,7 +86,7 @@
 
 ```bash
 # نصب یک‌کلیکه
-curl -fsSL https://github.com/k4lantar4/moonmesh/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash
 
 # مدیریت ساده
 sudo moonmesh

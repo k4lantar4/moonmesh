@@ -89,7 +89,7 @@
 
 ### نصب یک‌کلیکه
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash
 ```
 
 ### راه‌اندازی

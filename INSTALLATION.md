@@ -5,13 +5,13 @@
 برای نصب سریع EasyTier به همراه تمام ابزارهای مدیریتی:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash
 ```
 
 یا برای نصب دستی:
 
 ```bash
-wget https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh
+wget https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -74,17 +74,17 @@ sudo easytier-core --help
 
 ### نصب سایلنت (بدون تعامل)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh | sudo bash -s -- --silent
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash -s -- --silent
 ```
 
 ### نصب با پیکربندی سفارشی
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh | sudo bash -s -- --config custom.conf
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash -s -- --config custom.conf
 ```
 
 ### نصب فقط binary (بدون سرویس)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/install.sh | sudo bash -s -- --binary-only
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash -s -- --binary-only
 ```
 
 ## حذف نصب
@@ -98,7 +98,7 @@ sudo moonmesh --uninstall
 یا:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/uninstall.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/uninstall.sh | sudo bash
 ```
 
 ## عیب‌یابی
