@@ -5,56 +5,56 @@
 بعد از نصب، برای دسترسی به منوی مدیریت:
 
 ```bash
-sudo easytier-manager
+sudo moonmesh
 ```
 
 ## دستورات سریع
 
 ```bash
 # شروع سرویس
-sudo easytier-manager start
+sudo moonmesh start
 
 # توقف سرویس  
-sudo easytier-manager stop
+sudo moonmesh stop
 
 # ری‌استارت سرویس
-sudo easytier-manager restart
+sudo moonmesh restart
 
 # نمایش وضعیت
-sudo easytier-manager status
+sudo moonmesh status
 
 # نمایش لاگ‌ها
-sudo easytier-manager logs
+sudo moonmesh logs
 
 # نمایش peer ها
-sudo easytier-manager peers
+sudo moonmesh peers
 
 # اضافه کردن peer جدید
-sudo easytier-manager add-peer
+sudo moonmesh add-peer
 
 # حذف peer
-sudo easytier-manager remove-peer
+sudo moonmesh remove-peer
 
 # ایجاد تانل جدید
-sudo easytier-manager create-tunnel
+sudo moonmesh create-tunnel
 
 # نمایش تانل‌های فعال
-sudo easytier-manager list-tunnels
+sudo moonmesh list-tunnels
 
 # تست اتصال
-sudo easytier-manager test-connection
+sudo moonmesh test-connection
 
 # پشتیبان‌گیری از config
-sudo easytier-manager backup
+sudo moonmesh backup
 
 # بازیابی config
-sudo easytier-manager restore
+sudo moonmesh restore
 
 # بروزرسانی
-sudo easytier-manager update
+sudo moonmesh update
 
 # حذف کامل
-sudo easytier-manager uninstall
+sudo moonmesh uninstall
 ```
 
 ## منوی تعاملی
@@ -147,7 +147,7 @@ Remote Subnet: 10.0.0.0/24
 ### نمایش وضعیت Real-time
 
 ```bash
-sudo easytier-manager status --live
+sudo moonmesh status --live
 ```
 
 خروجی نمونه:
@@ -180,7 +180,7 @@ sudo easytier-manager status --live
 ### مشاهده لاگ‌های Live
 
 ```bash
-sudo easytier-manager logs --follow
+sudo moonmesh logs --follow
 ```
 
 ## Troubleshooting
@@ -189,13 +189,13 @@ sudo easytier-manager logs --follow
 
 ```bash
 # خودکار troubleshooting
-sudo easytier-manager diagnose
+sudo moonmesh diagnose
 
 # تست اتصال
-sudo easytier-manager test --full
+sudo moonmesh test --full
 
 # مشاهده diagnostic info
-sudo easytier-manager info --detailed
+sudo moonmesh info --detailed
 ```
 
 ### مشکلات شایع
@@ -203,28 +203,28 @@ sudo easytier-manager info --detailed
 #### 1. عدم اتصال peer ها
 ```bash
 # بررسی فایروال
-sudo easytier-manager check-firewall
+sudo moonmesh check-firewall
 
 # تست دسترسی پورت
-sudo easytier-manager test-port 11010
+sudo moonmesh test-port 11010
 ```
 
 #### 2. مشکل routing
 ```bash
 # بررسی routing table
-sudo easytier-manager show-routes
+sudo moonmesh show-routes
 
 # ریست routing
-sudo easytier-manager reset-routes
+sudo moonmesh reset-routes
 ```
 
 #### 3. مشکل performance
 ```bash
 # بررسی network stats
-sudo easytier-manager network-stats
+sudo moonmesh network-stats
 
 # بهینه‌سازی تنظیمات
-sudo easytier-manager optimize
+sudo moonmesh optimize
 ```
 
 ## کدهای خروج
@@ -256,15 +256,15 @@ sysctl -p
 
 ```bash
 # محدود کردن دسترسی
-sudo easytier-manager security --harden
+sudo moonmesh security --harden
 
 # تنظیم iptables rules
-sudo easytier-manager firewall --strict
+sudo moonmesh firewall --strict
 ```
 
 ---
 
 💡 **نکته:** برای اطلاعات بیشتر هر دستور، از `--help` استفاده کنید:
 ```bash
-sudo easytier-manager COMMAND --help
+sudo moonmesh COMMAND --help
 ``` 

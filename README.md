@@ -28,7 +28,7 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/i
 بعد از نصب:
 
 ```bash
-sudo easytier-manager
+sudo moonmesh
 ```
 
 ## 📋 پیش‌نیازها
@@ -43,7 +43,7 @@ sudo easytier-manager
 ```
 easytier-installer/
 ├── 📦 install.sh              # نصب اصلی
-├── 🎛️  easytier-manager.sh    # مدیریت سرویس
+├── 🎛️  moonmesh.sh    # مدیریت سرویس
 ├── 📁 config/
 │   ├── default.conf          # پیکربندی پیش‌فرض
 │   └── templates/            # تمپلیت‌ها
@@ -63,19 +63,19 @@ easytier-installer/
 
 | دستور | عملکرد |
 |--------|---------|
-| `sudo easytier-manager` | منوی اصلی |
-| `sudo easytier-manager start` | شروع سرویس |
-| `sudo easytier-manager stop` | توقف سرویس |
-| `sudo easytier-manager status` | نمایش وضعیت |
-| `sudo easytier-manager peers` | لیست peer ها |
-| `sudo easytier-manager logs` | مشاهده لاگ‌ها |
+| `sudo moonmesh` | منوی اصلی |
+| `sudo moonmesh start` | شروع سرویس |
+| `sudo moonmesh stop` | توقف سرویس |
+| `sudo moonmesh status` | نمایش وضعیت |
+| `sudo moonmesh peers` | لیست peer ها |
+| `sudo moonmesh logs` | مشاهده لاگ‌ها |
 
 ## 🌟 مثال‌های استفاده
 
 ### ایجاد شبکه جدید
 ```bash
 # شروع مدیریت
-sudo easytier-manager
+sudo moonmesh
 
 # انتخاب گزینه 6 (مدیریت تانل‌ها)
 # انتخاب گزینه 2 (ایجاد تانل جدید)
@@ -96,7 +96,7 @@ Peer Address: 192.168.1.100:11010
 
 ### نمایش وضعیت
 ```bash
-sudo easytier-manager status --live
+sudo moonmesh status --live
 ```
 
 ## 🛠️ تنظیمات پیشرفته
@@ -112,12 +112,12 @@ Remote Subnet: 10.0.0.0/24
 
 ### Security Hardening
 ```bash
-sudo easytier-manager security --harden
+sudo moonmesh security --harden
 ```
 
 ### Performance Optimization
 ```bash
-sudo easytier-manager optimize
+sudo moonmesh optimize
 ```
 
 ## 🔧 عیب‌یابی
@@ -127,24 +127,24 @@ sudo easytier-manager optimize
 #### خطا در اتصال peer ها
 ```bash
 # بررسی فایروال
-sudo easytier-manager check-firewall
+sudo moonmesh check-firewall
 
 # تست پورت
-sudo easytier-manager test-port 11010
+sudo moonmesh test-port 11010
 ```
 
 #### مشکل routing
 ```bash
 # نمایش routes
-sudo easytier-manager show-routes
+sudo moonmesh show-routes
 
 # ریست routing table
-sudo easytier-manager reset-routes
+sudo moonmesh reset-routes
 ```
 
 ### تشخیص خودکار مشکلات
 ```bash
-sudo easytier-manager diagnose
+sudo moonmesh diagnose
 ```
 
 ## 📊 مانیتورینگ
@@ -158,26 +158,26 @@ sudo easytier-manager diagnose
 ### لاگ‌های سیستم
 ```bash
 # لاگ زنده
-sudo easytier-manager logs --follow
+sudo moonmesh logs --follow
 
 # لاگ با فیلتر
-sudo easytier-manager logs --level error
+sudo moonmesh logs --level error
 ```
 
 ## 🔄 بروزرسانی
 
 ```bash
 # بررسی نسخه جدید
-sudo easytier-manager check-update
+sudo moonmesh check-update
 
 # بروزرسانی خودکار
-sudo easytier-manager update
+sudo moonmesh update
 ```
 
 ## 🗑️ حذف نصب
 
 ```bash
-sudo easytier-manager uninstall
+sudo moonmesh uninstall
 ```
 
 ## 🤝 مشارکت

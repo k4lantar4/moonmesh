@@ -30,7 +30,7 @@
 ```
 easytier-installer/
 ├── install.sh                 # اسکریپت نصب اصلی
-├── easytier-manager.sh        # مدیریت سرویس
+├── moonmesh.sh        # مدیریت سرویس
 ├── config/
 │   ├── default.conf          # پیکربندی پیش‌فرض
 │   └── templates/            # تمپلیت‌های config

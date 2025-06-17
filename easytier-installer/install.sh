@@ -362,7 +362,7 @@ show_summary() {
     echo -e "  • لاگ نصب: ${GREEN}$LOG_FILE${NC}"
     echo
     echo -e "${YELLOW}🚀 گام‌های بعدی:${NC}"
-    echo -e "  1. برای مدیریت: ${GREEN}sudo easytier-manager${NC}"
+    echo -e "  1. برای مدیریت: ${GREEN}sudo moonmesh${NC}"
     echo -e "  2. برای استفاده مستقیم: ${GREEN}sudo easytier-core --help${NC}"
     echo -e "  3. مشاهده راهنما: ${GREEN}cat /etc/easytier/README${NC}"
     echo

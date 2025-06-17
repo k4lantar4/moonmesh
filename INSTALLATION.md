@@ -64,7 +64,7 @@ sudo ./install.sh
 
 ```bash
 # شروع مدیریت EasyTier
-sudo easytier-manager
+sudo moonmesh
 
 # یا استفاده مستقیم
 sudo easytier-core --help
@@ -92,7 +92,7 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/easytier-installer/main/i
 برای حذف کامل EasyTier:
 
 ```bash
-sudo easytier-manager --uninstall
+sudo moonmesh --uninstall
 ```
 
 یا:
