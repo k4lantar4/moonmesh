@@ -263,6 +263,13 @@ show_summary() {
     echo "  2. Select 'Quick Connect to Network'"
     echo "  3. Follow the simple setup wizard"
     echo
+    colorize cyan "🎯 New Features in v2.0:"
+    echo "  • Default IP: 10.10.10.1"
+    echo "  • Default Port: 1377"
+    echo "  • Watchdog & Stability features"
+    echo "  • Network optimization tools"
+    echo "  • IPv6 & Multi-thread options"
+    echo
     colorize green "✨ Ready to create your mesh network!"
 }
 
@@ -297,10 +304,10 @@ main() {
     if command -v apt-get &> /dev/null; then
         colorize yellow "📦 Installing prerequisites..."
         apt-get update -qq
-        apt-get install -y curl unzip &> /dev/null
+        apt-get install -y curl unzip bc &> /dev/null
     elif command -v yum &> /dev/null; then
         colorize yellow "📦 Installing prerequisites..."
-        yum install -y curl unzip &> /dev/null
+        yum install -y curl unzip bc &> /dev/null
     fi
 
     download_and_install
