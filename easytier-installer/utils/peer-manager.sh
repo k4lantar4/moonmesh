@@ -38,38 +38,38 @@ log_error() {
 # =============================================================================
 
 show_connected_peers() {
-    echo -e "${CYAN}=== Peers متصل ===${NC}"
+    echo -e "${CYAN}=== Connected Peers ===${NC}"
     echo
     
     if ! command -v easytier-cli &> /dev/null; then
-        log_error "easytier-cli یافت نشد"
+        log_error "easytier-cli not found"
         return 1
     fi
     
     if ! systemctl is-active --quiet easytier; then
-        log_error "سرویس EasyTier در حال اجرا نیست"
-        log_info "برای شروع: sudo systemctl start easytier"
+        log_error "EasyTier service is not running"
+        log_info "To start: sudo systemctl start easytier"
         return 1
     fi
     
-    log_info "دریافت اطلاعات peers..."
+    log_info "Fetching peers information..."
     
     # نمایش peers
     if easytier-cli peer 2>/dev/null; then
-        log_success "اطلاعات peers با موفقیت دریافت شد"
+        log_success "Peers information fetched successfully"
     else
-        log_warning "خطا در دریافت اطلاعات peers"
-        log_info "ممکن است هنوز peer ای متصل نشده باشد"
+        log_warning "Error fetching peers information"
+        log_info "Maybe no peer is connected yet"
     fi
     
     echo
     
     # نمایش routes
-    log_info "Routes فعال:"
+    log_info "Active routes:"
     if easytier-cli route 2>/dev/null; then
-        log_success "اطلاعات routes دریافت شد"
+        log_success "Routes information fetched"
     else
-        log_warning "خطا در دریافت routes"
+        log_warning "Error fetching routes"
     fi
 }
 

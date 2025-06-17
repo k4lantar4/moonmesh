@@ -41,35 +41,35 @@ print_error() {
 # بررسی دسترسی root
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        print_error "نیاز به دسترسی root"
+        print_error "Root access is required"
         exit 1
     fi
 }
 
 # نصب سرویس
 install_service() {
-    print_info "نصب EasyTier systemd service..."
+    print_info "Installing EasyTier systemd service..."
     
-    # کپی فایل service
+    # Copy service file
     if [[ -f "systemd/$SERVICE_FILE" ]]; then
         cp "systemd/$SERVICE_FILE" "$SERVICE_DIR/"
-        print_success "فایل service کپی شد"
+        print_success "Service file copied"
     else
-        print_error "فایل service یافت نشد"
+        print_error "Service file not found"
         exit 1
     fi
     
-    # کپی config پیش‌فرض
+    # Copy default config
     if [[ -f "config/default.toml" ]]; then
         cp "config/default.toml" "$CONFIG_DIR/config.toml"
-        print_success "فایل config کپی شد"
+        print_success "Config file copied"
     fi
     
     # reload systemd
     systemctl daemon-reload
-    print_success "systemd daemon reload شد"
+    print_success "systemd daemon reloaded"
     
-    print_success "سرویس EasyTier نصب شد"
+    print_success "EasyTier service installed"
 }
 
 # فعال‌سازی auto-start

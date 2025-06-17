@@ -28,7 +28,7 @@ print_header() {
     clear
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════════╗"
     echo "║                          🎛️  EasyTier Manager                           ║"
-    echo "║                         مدیریت ساده شبکه تانل                          ║"
+    echo "║                        Simple Tunnel Network Management                  ║"
     echo "╚══════════════════════════════════════════════════════════════════════════╝${NC}"
     echo
 }
@@ -50,7 +50,7 @@ log_error() {
 }
 
 press_any_key() {
-    echo -e "\n${YELLOW}برای ادامه هر کلیدی را فشار دهید...${NC}"
+    echo -e "\n${YELLOW}Press any key to continue...${NC}"
     read -n 1 -s
 }
 
@@ -150,57 +150,53 @@ show_status() {
 # =============================================================================
 
 manage_peers() {
-    echo -e "${PURPLE}=== مدیریت Peers ===${NC}"
+    echo -e "${PURPLE}=== Peers Management ===${NC}"
     echo
-    
     if ! command -v easytier-cli &> /dev/null; then
-        log_error "easytier-cli یافت نشد"
+        log_error "easytier-cli not found"
         press_any_key
         return
     fi
-    
     if ! systemctl is-active --quiet "$SERVICE_NAME"; then
-        log_warning "سرویس EasyTier در حال اجرا نیست"
-        echo "ابتدا سرویس را شروع کنید"
+        log_warning "EasyTier service is not running"
+        echo "Please start the service first"
         press_any_key
         return
     fi
-    
     while true; do
-        echo -e "${PURPLE}=== منوی مدیریت Peers ===${NC}"
-        echo "1) نمایش peers متصل"
-        echo "2) اضافه کردن peer جدید"
-        echo "3) ping تست"
-        echo "4) بازگشت به منوی اصلی"
+        echo -e "${PURPLE}=== Peers Management Menu ===${NC}"
+        echo "1) Show connected peers"
+        echo "2) Add new peer"
+        echo "3) Ping test"
+        echo "4) Back to main menu"
         echo
-        read -p "انتخاب کنید [1-4]: " peer_choice
-        
+        read -p "Select [1-4]: " peer_choice
         case $peer_choice in
             1)
-                echo -e "\n${CYAN}Peers متصل:${NC}"
-                easytier-cli peer 2>/dev/null || log_error "خطا در دریافت اطلاعات peers"
+                echo -e "\n${CYAN}Connected Peers:${NC}"
+                easytier-cli peer 2>/dev/null || log_error "Error fetching peers information"
                 echo
                 ;;
             2)
                 echo
-                read -p "IP:Port peer جدید (مثال: 1.2.3.4:11011): " new_peer
+                read -p "New peer IP:Port (e.g. 1.2.3.4:11011): " new_peer
                 if [[ -n "$new_peer" ]]; then
-                    log_info "اضافه کردن peer: $new_peer"
-                    log_warning "💡 برای اضافه کردن دائمی، فایل config را ویرایش کنید:"
+                    log_info "Adding peer: $new_peer"
+                    log_warning "💡 For permanent addition, edit the config file:"
                     echo "   sudo nano $CONFIG_DIR/config.yml"
                 else
-                    log_error "IP:Port معتبر وارد نکردید"
+                    log_error "Invalid IP:Port entered"
                 fi
                 echo
                 ;;
             3)
                 echo
-                read -p "IP مقصد برای ping (مثال: 10.145.0.1): " ping_ip
+                read -p "Destination IP for ping (e.g. 10.145.0.1): " ping_ip
                 if [[ -n "$ping_ip" ]]; then
-                    log_info "تست ping به $ping_ip..."
-                    ping -c 3 "$ping_ip" || log_error "ping ناموفق"
+                    log_info "Pinging $ping_ip..."
+                    ping -c 3 "$ping_ip" || log_error "Ping failed"
                 else
-                    log_error "IP معتبر وارد نکردید"
+                    log_error "Invalid IP entered"
                 fi
                 echo
                 ;;
@@ -208,10 +204,9 @@ manage_peers() {
                 return
                 ;;
             *)
-                log_error "گزینه نامعتبر"
+                log_error "Invalid option"
                 ;;
         esac
-        
         press_any_key
         echo
     done
@@ -222,29 +217,27 @@ manage_peers() {
 # =============================================================================
 
 manage_network() {
-    echo -e "${YELLOW}=== مدیریت شبکه ===${NC}"
+    echo -e "${YELLOW}=== Network Management ===${NC}"
     echo
-    
     while true; do
-        echo -e "${YELLOW}=== منوی مدیریت شبکه ===${NC}"
-        echo "1) نمایش پیکربندی فعلی"
-        echo "2) ایجاد network جدید (name + secret + IP)"
-        echo "3) اتصال به network موجود"
-        echo "4) نمایش route های فعال"
-        echo "5) تست ping و connectivity"
-        echo "6) ویرایش دستی تنظیمات شبکه"
-        echo "7) restart سرویس (اعمال تغییرات)"
-        echo "8) بازگشت به منوی اصلی"
+        echo -e "${YELLOW}=== Network Management Menu ===${NC}"
+        echo "1) Show current configuration"
+        echo "2) Create new network (name + secret + IP)"
+        echo "3) Join existing network"
+        echo "4) Show active routes"
+        echo "5) Ping & connectivity test"
+        echo "6) Edit network settings manually"
+        echo "7) Restart service (apply changes)"
+        echo "8) Back to main menu"
         echo
-        read -p "انتخاب کنید [1-8]: " network_choice
-        
+        read -p "Select [1-8]: " network_choice
         case $network_choice in
             1)
-                echo -e "\n${CYAN}پیکربندی فعلی:${NC}"
+                echo -e "\n${CYAN}Current configuration:${NC}"
                 if [[ -f "$CONFIG_DIR/config.yml" ]]; then
                     cat "$CONFIG_DIR/config.yml"
                 else
-                    log_error "فایل config یافت نشد"
+                    log_error "Config file not found"
                 fi
                 echo
                 ;;
@@ -698,23 +691,21 @@ performance_menu() {
 # =============================================================================
 
 troubleshooting_menu() {
-    echo -e "${RED}🔧 عیب‌یابی و تعمیر${NC}"
+    echo -e "${RED}🔧 Troubleshooting & Repair${NC}"
     echo
-    
     while true; do
-        echo -e "${RED}=== منوی Troubleshooting ===${NC}"
-        echo "1) تشخیص کامل مشکلات"
-        echo "2) تست اتصال خودکار (ping peers)"
-        echo "3) بررسی وضعیت سرویس"
-        echo "4) نمایش لاگ‌های اخیر"
-        echo "5) تعمیر خودکار مشکلات"
-        echo "6) وضعیت سریع"
-        echo "7) restart سرویس (در صورت خرابی)"
-        echo "8) مشاهده لاگ زنده"
-        echo "9) بازگشت به منوی اصلی"
+        echo -e "${RED}=== Troubleshooting Menu ===${NC}"
+        echo "1) Full diagnosis"
+        echo "2) Auto connectivity test (ping peers)"
+        echo "3) Check service status"
+        echo "4) Show recent logs"
+        echo "5) Auto repair"
+        echo "6) Quick status"
+        echo "7) Restart service (if broken)"
+        echo "8) Show live logs"
+        echo "9) Back to main menu"
         echo
-        read -p "انتخاب کنید [1-9]: " trouble_choice
-        
+        read -p "Select [1-9]: " trouble_choice
         case $trouble_choice in
             1)
                 echo -e "\n${PURPLE}=== تشخیص کامل ===${NC}"

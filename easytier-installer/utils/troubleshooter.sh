@@ -47,7 +47,7 @@ print_critical() {
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        print_error "نیاز به دسترسی root"
+        print_error "Root access is required"
         exit 1
     fi
 }

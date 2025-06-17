@@ -164,26 +164,26 @@ check_prerequisites() {
     done
     
     if [[ ${#missing_tools[@]} -gt 0 ]]; then
-        print_warning "ابزارهای مورد نیاز یافت نشد: ${missing_tools[*]}"
+        print_warning "Required tools not found: ${missing_tools[*]}"
         install_prerequisites "${missing_tools[@]}"
     else
-        print_success "تمام پیش‌نیازها موجود است"
+        print_success "All prerequisites are available"
     fi
     
     # بررسی فضای دیسک
     local available_space=$(df /usr/local 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
     if [[ $available_space -lt 51200 ]]; then  # 50MB
-        print_warning "فضای دیسک کم است (کمتر از 50MB)"
+        print_warning "Low disk space (less than 50MB)"
     fi
     
     # بررسی اتصال اینترنت
     if ! curl -s --max-time 5 https://api.github.com &> /dev/null; then
-        print_error "عدم دسترسی به اینترنت"
-        print_info "لطفاً اتصال اینترنت را بررسی کنید"
+        print_error "No internet access"
+        print_info "Please check your internet connection"
         exit 1
     fi
     
-    print_success "اتصال اینترنت فعال است"
+    print_success "Internet connection is active"
 }
 
 # نصب پیش‌نیازها
