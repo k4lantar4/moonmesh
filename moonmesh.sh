@@ -75,39 +75,40 @@ generate_random_secret() {
 }
 
 # =============================================================================
-# Get Public IP with Better Fallback
+# Get All System IPs (Public + Non-Private) in Simple Format
 # =============================================================================
 
+get_all_ips() {
+    # دریافت تمام IP ها بجز loopback و private IPs
+    local ips=""
+    
+    # دریافت همه IP ها از ip a
+    while read -r ip; do
+        # حذف IP های private و loopback
+        if [[ ! "$ip" =~ ^127\. ]] && \
+           [[ ! "$ip" =~ ^10\. ]] && \
+           [[ ! "$ip" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]] && \
+           [[ ! "$ip" =~ ^192\.168\. ]] && \
+           [[ ! "$ip" =~ ^169\.254\. ]]; then
+            if [[ -z "$ips" ]]; then
+                ips="$ip"
+            else
+                ips="$ips,$ip"
+            fi
+        fi
+    done < <(ip a | grep -oP '(?<=inet )[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(?=/[0-9]+)')
+    
+    echo "$ips"
+}
+
+# Legacy function for backward compatibility
 get_public_ip() {
-    local ip=""
-
-    # تلاش اول: ipinfo.io
-    ip=$(timeout 5 curl -s ipinfo.io/ip 2>/dev/null | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' || echo "")
-
-    if [[ -n "$ip" ]]; then
-        echo "$ip"
-        return
+    local all_ips=$(get_all_ips)
+    if [[ -n "$all_ips" ]]; then
+        echo "$all_ips" | cut -d',' -f1
+    else
+        echo "Unknown"
     fi
-
-    # تلاش دوم: ifconfig.me
-    ip=$(timeout 5 curl -s ifconfig.me 2>/dev/null | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' || echo "")
-
-    if [[ -n "$ip" ]]; then
-        echo "$ip"
-        return
-    fi
-
-    # تلاش سوم: httpbin.org
-    ip=$(timeout 5 curl -s httpbin.org/ip 2>/dev/null | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' || echo "")
-
-    if [[ -n "$ip" ]]; then
-        echo "$ip"
-        return
-    fi
-
-    # fallback: IP محلی
-    ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "Unknown")
-    echo "$ip"
 }
 
 # =============================================================================
@@ -124,16 +125,20 @@ quick_connect() {
 • Default settings work for most cases"
     echo
 
-    # IP عمومی با fallback بهتر
-    colorize yellow "🔍 Getting your public IP..."
-    PUBLIC_IP=$(get_public_ip)
+    # دریافت تمام IP های سیستم
+    colorize yellow "🔍 Getting your system IPs..."
+    ALL_IPS=$(get_all_ips)
 
     # پیشفرض‌های جدید
     DEFAULT_LOCAL_IP="10.10.10.1"
     DEFAULT_PORT="1377"
     DEFAULT_HOSTNAME="$(hostname)-$(date +%s | tail -c 4)"
 
-    echo "📡 Your Public IP: $PUBLIC_IP"
+    if [[ -n "$ALL_IPS" ]]; then
+        echo "📡 Your IPs: $ALL_IPS"
+    else
+        echo "📡 Your IPs: No public IPs found"
+    fi
     echo
 
     # ورودی‌ها با پیشفرض
@@ -249,7 +254,11 @@ EOF
     echo "  🔌 Port: $PORT"
     echo "  🔐 Secret: $NETWORK_SECRET"
     echo "  🔗 Protocol: $DEFAULT_PROTOCOL"
-    echo "  📡 Public IP: $PUBLIC_IP"
+    if [[ -n "$ALL_IPS" ]]; then
+        echo "  📡 IPs: $ALL_IPS"
+    else
+        echo "  📡 IPs: No public IPs found"
+    fi
     echo "  ⚡ Multi-thread: $([ "$MULTI_THREAD" ] && echo "Enabled" || echo "Disabled")"
     echo "  🌐 IPv6: $([ "$IPV6_MODE" ] && echo "Disabled" || echo "Enabled")"
 
@@ -375,14 +384,18 @@ peer_center() {
 show_network_secret() {
     echo
     if [[ -f "/etc/systemd/system/easytier.service" ]]; then
-        # Get public IPs
-        PUBLIC_IP=$(get_public_ip)
+        # Get all system IPs
+        ALL_IPS=$(get_all_ips)
 
         # Get network secret
         NETWORK_SECRET=$(grep -oP '(?<=--network-secret )[^ ]+' /etc/systemd/system/easytier.service)
 
         if [[ -n $NETWORK_SECRET ]]; then
-            colorize cyan "📡 Public IPs: $PUBLIC_IP"
+            if [[ -n "$ALL_IPS" ]]; then
+                colorize cyan "📡 System IPs: $ALL_IPS"
+            else
+                colorize yellow "📡 System IPs: No public IPs found"
+            fi
             colorize cyan "🔐 Network Secret Key: $NETWORK_SECRET"
         else
             colorize red "❌ Network Secret key not found"
