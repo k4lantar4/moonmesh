@@ -428,20 +428,18 @@ watchdog_menu() {
     while true; do
         echo -e "${PURPLE}=== Watchdog Menu ===${NC}"
         echo -e "${GREEN}1) 🏓 Ping-based Watchdog (Interactive)${NC}"
-        echo -e "${CYAN}2) 📊 Service Health & Performance Monitor${NC}"
-        echo -e "${YELLOW}3) 🔄 Auto-restart Timer (Cron)${NC}"
-        echo -e "${BLUE}4) 📝 View Live Watchdog Logs${NC}"
-        echo -e "${RED}5) 🗑️  Remove Watchdog${NC}"
+        echo -e "${YELLOW}2) 🔄 Auto-restart Timer (Cron)${NC}"
+        echo -e "${BLUE}3) 📝 View Live Watchdog Logs${NC}"
+        echo -e "${RED}4) 🗑️  Remove Watchdog${NC}"
         echo -e "${WHITE}0) ⬅️  Back to Main Menu${NC}"
         echo
-        read -p "Select [0-5]: " watchdog_choice
+        read -p "Select [0-4]: " watchdog_choice
 
         case $watchdog_choice in
             1) setup_ping_watchdog ;;
-            2) service_health_and_performance ;;
-            3) setup_auto_restart ;;
-            4) view_watchdog_logs ;;
-            5) remove_watchdog ;;
+            2) setup_auto_restart ;;
+            3) view_watchdog_logs ;;
+            4) remove_watchdog ;;
             0) trap - INT; return ;;
             *) colorize red "❌ Invalid option" ;;
         esac
