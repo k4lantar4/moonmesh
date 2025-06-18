@@ -20,7 +20,7 @@
 ## 🚀 نصب یک‌کلیکه
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash && sudo moonvpn
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash && sudo moonmesh
 ```
 
 ## 🎮 استفاده فوری
