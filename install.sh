@@ -118,6 +118,83 @@ get_latest_version() {
 }
 
 # =============================================================================
+# مدیریت سرویس‌های در حال اجرا
+# =============================================================================
+
+manage_running_services() {
+    colorize yellow "🔍 Checking for running EasyTier services..."
+    
+    local services_found=false
+    local running_processes=""
+    
+    # بررسی سرویس systemd
+    if systemctl is-active --quiet easytier 2>/dev/null || systemctl is-active --quiet easytier.service 2>/dev/null; then
+        services_found=true
+        running_processes="systemd service (easytier)"
+        colorize yellow "⚠️  EasyTier systemd service is running"
+    fi
+    
+    # بررسی پروسه‌های در حال اجرا
+    if pgrep -f "easytier-core" >/dev/null 2>&1; then
+        services_found=true
+        if [[ -n "$running_processes" ]]; then
+            running_processes="$running_processes, easytier-core process"
+        else
+            running_processes="easytier-core process"
+        fi
+        colorize yellow "⚠️  EasyTier core process is running"
+    fi
+    
+    if [[ "$services_found" == true ]]; then
+        echo
+        colorize cyan "🛑 Running services detected: $running_processes"
+        colorize white "   To install new version, these services need to be stopped."
+        echo
+        
+        # درخواست تأیید با پیشفرض Y
+        echo -n "$(colorize yellow "❓ Stop services and continue installation? [Y/n]: ")"
+        read -t 10 -r response || response="y"  # 10 ثانیه timeout با پیشفرض y
+        
+        case ${response,,} in
+            n|no)
+                colorize red "❌ Installation cancelled by user"
+                exit 0
+                ;;
+            *|y|yes)
+                colorize green "✅ Proceeding with service management..."
+                
+                # توقف سرویس systemd
+                if systemctl is-active --quiet easytier 2>/dev/null; then
+                    colorize yellow "🛑 Stopping easytier service..."
+                    systemctl stop easytier 2>/dev/null || true
+                fi
+                
+                if systemctl is-active --quiet easytier.service 2>/dev/null; then
+                    colorize yellow "🛑 Stopping easytier.service..."
+                    systemctl stop easytier.service 2>/dev/null || true
+                fi
+                
+                # کشتن پروسه‌های باقی‌مانده
+                if pgrep -f "easytier-core" >/dev/null 2>&1; then
+                    colorize yellow "🛑 Stopping easytier-core processes..."
+                    pkill -f "easytier-core" 2>/dev/null || true
+                    sleep 2
+                    
+                    # اگر هنوز در حال اجرا بود، force kill
+                    if pgrep -f "easytier-core" >/dev/null 2>&1; then
+                        colorize yellow "🔥 Force stopping remaining processes..."
+                        pkill -9 -f "easytier-core" 2>/dev/null || true
+                        sleep 1
+                    fi
+                fi
+                
+                colorize green "✅ Services stopped successfully"
+                ;;
+        esac
+    fi
+}
+
+# =============================================================================
 # دانلود و نصب
 # =============================================================================
 
@@ -170,11 +247,31 @@ download_and_install() {
     
     if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
         colorize red "❌ Failed to install easytier-core"
-        exit 1
+        colorize yellow "💡 This might be because the file is currently in use."
+        colorize cyan "🔄 Attempting to resolve..."
+        
+        # اجرای مدیریت سرویس‌ها
+        manage_running_services
+        
+        # تلاش مجدد
+        colorize yellow "🔄 Retrying installation..."
+        if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
+            colorize red "❌ Still failed to install easytier-core"
+            colorize yellow "💡 Possible solutions:"
+            echo "  • Check file permissions: ls -la $DEST_DIR/"
+            echo "  • Check disk space: df -h"
+            echo "  • Manual stop: sudo pkill -9 easytier-core"
+            exit 1
+        else
+            colorize green "✅ easytier-core installed successfully after retry!"
+        fi
     fi
     
     if ! cp "$EASYTIER_CLI" "$DEST_DIR/" 2>/dev/null; then
         colorize red "❌ Failed to install easytier-cli"
+        colorize yellow "💡 Possible solutions:"
+        echo "  • Check file permissions: ls -la $DEST_DIR/"
+        echo "  • Check disk space: df -h"
         exit 1
     fi
 
@@ -388,6 +485,9 @@ main() {
         colorize yellow "📦 Installing prerequisites..."
         yum install -y curl unzip bc &> /dev/null
     fi
+
+    # بررسی و مدیریت سرویس‌های در حال اجرا
+    manage_running_services
 
     download_and_install
     install_manager
