@@ -4,7 +4,7 @@
 # K4lantar4 - Inspired by K4lantar4/MoonMesh
 # Fast, Simple, No Complexity - One Script for Everything
 
-set -e
+# set -e  # Temporarily disabled for debugging
 
 # Version
 MOONMESH_VERSION="3.0"
@@ -184,9 +184,21 @@ install_easytier_and_moonmesh() {
     
     # نصب MoonMesh manager
     log cyan "Installing MoonMesh manager..."
-    cp "$0" "$DEST_DIR/moonmesh" || { log red "Failed to install moonmesh manager"; exit 1; }
-    chmod +x "$DEST_DIR/moonmesh"
-    log green "MoonMesh manager installed"
+    
+    # دانلود مستقیم از GitHub (بهترین روش برای curl usage)
+    if curl -fsSL "https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh" -o "$DEST_DIR/moonmesh"; then
+        chmod +x "$DEST_DIR/moonmesh"
+        log green "MoonMesh manager installed"
+    else
+        log yellow "Warning: Could not download moonmesh manager from GitHub"
+        # تلاش برای کپی محلی
+        if [[ -f "$0" ]] && [[ -s "$0" ]]; then
+            cp "$0" "$DEST_DIR/moonmesh" && chmod +x "$DEST_DIR/moonmesh"
+            log green "MoonMesh manager installed (local copy)"
+        else
+            log yellow "You can install it manually later: wget https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh -O /usr/local/bin/moonmesh && chmod +x /usr/local/bin/moonmesh"
+        fi
+    fi
     
     # پاک‌سازی
     cd / && rm -rf "$temp_dir"
@@ -2065,13 +2077,13 @@ read_option() {
 run_manager_mode() {
     # بررسی دسترسی root
     if [[ $EUID -ne 0 ]]; then
-        colorize red "❌ This script must be run as root"
+        echo -e "${RED}❌ This script must be run as root${NC}"
         echo "Usage: sudo $0"
         exit 1
     fi
 
     # Trap Ctrl+C for main menu to exit
-    trap 'colorize green "👋 Goodbye!"; exit 0' INT
+    trap 'echo -e "${GREEN}👋 Goodbye!${NC}"; exit 0' INT
 
     # حلقه اصلی منیجر
     while true; do
