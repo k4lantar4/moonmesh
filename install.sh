@@ -72,6 +72,92 @@ check_installation() {
 }
 
 # =============================================================================
+# نصب پیش‌نیازها
+# =============================================================================
+
+install_prerequisites() {
+    colorize yellow "📦 Installing prerequisites..."
+    
+    local packages_needed=""
+    local install_cmd=""
+    local update_cmd=""
+    
+    # تشخیص مدیر بسته
+    if command -v apt-get &> /dev/null; then
+        install_cmd="apt-get install -y"
+        update_cmd="apt-get update"
+        colorize cyan "🔍 Detected: Debian/Ubuntu (apt)"
+    elif command -v yum &> /dev/null; then
+        install_cmd="yum install -y"
+        update_cmd="yum check-update"
+        colorize cyan "🔍 Detected: RHEL/CentOS (yum)"
+    elif command -v dnf &> /dev/null; then
+        install_cmd="dnf install -y"
+        update_cmd="dnf check-update"
+        colorize cyan "🔍 Detected: Fedora (dnf)"
+    elif command -v pacman &> /dev/null; then
+        install_cmd="pacman -S --noconfirm"
+        update_cmd="pacman -Sy"
+        colorize cyan "🔍 Detected: Arch Linux (pacman)"
+    else
+        colorize red "❌ Unsupported package manager"
+        colorize yellow "💡 Please install manually: curl, unzip, bc"
+        return 0
+    fi
+    
+    # بررسی بسته‌های موجود
+    colorize cyan "🔍 Checking required packages..."
+    
+    if ! command -v curl &> /dev/null; then
+        packages_needed="$packages_needed curl"
+        colorize yellow "  ⚠️  curl: Not installed"
+    else
+        colorize green "  ✅ curl: $(curl --version | head -1 | cut -d' ' -f2)"
+    fi
+    
+    if ! command -v unzip &> /dev/null; then
+        packages_needed="$packages_needed unzip"
+        colorize yellow "  ⚠️  unzip: Not installed"
+    else
+        colorize green "  ✅ unzip: $(unzip -v | head -1 | awk '{print $2}')"
+    fi
+    
+    if ! command -v bc &> /dev/null; then
+        packages_needed="$packages_needed bc"
+        colorize yellow "  ⚠️  bc: Not installed"
+    else
+        colorize green "  ✅ bc: $(bc --version | head -1 | cut -d' ' -f2)"
+    fi
+    
+    # نصب بسته‌های مورد نیاز
+    if [[ -n "$packages_needed" ]]; then
+        colorize yellow "📥 Installing missing packages:$packages_needed"
+        
+        # به‌روزرسانی فهرست بسته‌ها
+        colorize cyan "  🔄 Updating package list..."
+        if $update_cmd &> /dev/null; then
+            colorize green "  ✅ Package list updated"
+        else
+            colorize yellow "  ⚠️  Package list update failed, continuing..."
+        fi
+        
+        # نصب بسته‌ها
+        colorize cyan "  📦 Installing packages..."
+        if $install_cmd $packages_needed; then
+            colorize green "✅ Prerequisites installed successfully!"
+        else
+            colorize red "❌ Failed to install prerequisites"
+            colorize yellow "💡 Please install manually: $packages_needed"
+            exit 1
+        fi
+    else
+        colorize green "✅ All prerequisites are already installed!"
+    fi
+    
+    echo
+}
+
+# =============================================================================
 # تشخیص معماری
 # =============================================================================
 
@@ -151,9 +237,15 @@ manage_running_services() {
         colorize white "   To install new version, these services need to be stopped."
         echo
         
-        # درخواست تأیید با پیشفرض Y
+        # درخواست تأیید بدون timeout
         echo -n "$(colorize yellow "❓ Stop services and continue installation? [Y/n]: ")"
-        read -t 10 -r response || response="y"  # 10 ثانیه timeout با پیشفرض y
+        read -r response
+        
+        # اگر کاربر چیزی وارد نکرد، پیشفرض Y
+        if [[ -z "$response" ]]; then
+            response="y"
+            colorize cyan "  💡 Using default: Yes"
+        fi
         
         case ${response,,} in
             n|no)
@@ -203,30 +295,67 @@ download_and_install() {
 
     # ایجاد دایرکتوری موقت
     TEMP_DIR=$(mktemp -d)
+    colorize cyan "📁 Created temporary directory: $TEMP_DIR"
     cd "$TEMP_DIR"
 
     # دانلود فایل
     DOWNLOAD_URL="$URL_BASE/$DOWNLOAD_FILE"
-    if ! curl -fsSL "$DOWNLOAD_URL" -o "$DOWNLOAD_FILE"; then
+    colorize cyan "🌐 Download URL: $DOWNLOAD_URL"
+    colorize cyan "📦 File: $DOWNLOAD_FILE"
+    
+    # نمایش پیشرفت دانلود
+    colorize yellow "⬇️  Starting download..."
+    if curl -fsSL --progress-bar "$DOWNLOAD_URL" -o "$DOWNLOAD_FILE"; then
+        local file_size=$(du -h "$DOWNLOAD_FILE" | cut -f1)
+        colorize green "✅ Download completed! Size: $file_size"
+    else
         colorize red "❌ Download failed: $DOWNLOAD_URL"
+        colorize yellow "💡 Possible causes:"
+        echo "  • Network connection issues"
+        echo "  • GitHub API rate limiting"
+        echo "  • Invalid version or architecture"
         exit 1
     fi
 
     # استخراج
     colorize yellow "📦 Extracting files..."
-    if ! unzip -q "$DOWNLOAD_FILE"; then
+    colorize cyan "🔓 Extracting $DOWNLOAD_FILE..."
+    
+    if unzip -q "$DOWNLOAD_FILE"; then
+        colorize green "✅ Files extracted successfully!"
+        colorize cyan "📋 Extracted contents:"
+        ls -la | grep -E "(easytier-|total)" | while read line; do
+            echo "  $line"
+        done
+    else
         colorize red "❌ Failed to extract files"
+        colorize yellow "💡 Archive might be corrupted"
         exit 1
     fi
 
     # یافتن فایل‌های binary
+    colorize yellow "🔍 Searching for binary files..."
     EASYTIER_CORE=$(find . -name "easytier-core" -type f | head -1)
     EASYTIER_CLI=$(find . -name "easytier-cli" -type f | head -1)
 
     if [[ -z "$EASYTIER_CORE" ]] || [[ -z "$EASYTIER_CLI" ]]; then
         colorize red "❌ Binary files not found in archive"
+        colorize yellow "💡 Available files:"
+        find . -type f | head -10 | while read file; do
+            echo "  $file"
+        done
         exit 1
     fi
+    
+    colorize green "✅ Binary files found:"
+    echo "  • easytier-core: $EASYTIER_CORE"
+    echo "  • easytier-cli: $EASYTIER_CLI"
+    
+    # بررسی اندازه و مجوزهای فایل‌ها
+    colorize cyan "📊 File details:"
+    ls -lh "$EASYTIER_CORE" "$EASYTIER_CLI" | while read line; do
+        echo "  $line"
+    done
 
     # کپی فایل‌ها با backup اگر موجود باشند
     colorize yellow "📁 Installing to $DEST_DIR..."
@@ -246,8 +375,11 @@ download_and_install() {
     fi
     
     # نصب فایل‌های جدید
+    colorize yellow "🔧 Setting executable permissions..."
     chmod +x "$EASYTIER_CORE" "$EASYTIER_CLI"
+    colorize green "✅ Permissions set successfully!"
     
+    colorize yellow "📁 Installing easytier-core..."
     if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
         colorize red "❌ Failed to install easytier-core"
         colorize yellow "💡 Trying additional cleanup..."
@@ -281,21 +413,28 @@ download_and_install() {
         else
             colorize green "✅ easytier-core installed successfully after cleanup!"
         fi
+    else
+        colorize green "✅ easytier-core installed successfully!"
     fi
     
+    colorize yellow "📁 Installing easytier-cli..."
     if ! cp "$EASYTIER_CLI" "$DEST_DIR/" 2>/dev/null; then
         colorize red "❌ Failed to install easytier-cli"
         colorize yellow "💡 Possible solutions:"
         echo "  • Check file permissions: ls -la $DEST_DIR/"
         echo "  • Check disk space: df -h"
         exit 1
+    else
+        colorize green "✅ easytier-cli installed successfully!"
     fi
 
     # پاک کردن فایل‌های موقت
+    colorize yellow "🧹 Cleaning up temporary files..."
     cd /
     rm -rf "$TEMP_DIR"
+    colorize green "✅ Temporary files cleaned up!"
 
-    colorize green "✅ EasyTier binaries installed successfully!"
+    colorize green "🎉 EasyTier binaries installed successfully!"
 }
 
 # =============================================================================
@@ -306,6 +445,7 @@ install_manager() {
     colorize yellow "🎛️  Installing moonmesh manager..."
 
     MOONMESH_URL="https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh"
+    colorize cyan "🌐 Manager URL: $MOONMESH_URL"
     
     # backup فایل moonmesh موجود
     if [[ -f "$DEST_DIR/moonmesh" ]]; then
@@ -314,15 +454,27 @@ install_manager() {
     fi
 
     # دانلود moonmesh جدید
+    colorize yellow "⬇️  Downloading moonmesh manager..."
     if curl -fsSL "$MOONMESH_URL" -o "$DEST_DIR/moonmesh.tmp"; then
+        colorize green "✅ Download completed!"
+        
+        colorize yellow "📁 Installing moonmesh..."
         mv "$DEST_DIR/moonmesh.tmp" "$DEST_DIR/moonmesh"
         chmod +x "$DEST_DIR/moonmesh"
-        colorize green "✅ moonmesh manager installed!"
+        
+        # بررسی اندازه فایل
+        local file_size=$(du -h "$DEST_DIR/moonmesh" | cut -f1)
+        colorize green "✅ moonmesh manager installed! Size: $file_size"
     else
         colorize yellow "⚠️  Failed to download manager"
+        colorize yellow "💡 Possible causes:"
+        echo "  • Network connection issues"
+        echo "  • GitHub repository unavailable"
+        
         # اگر فایل قبلی موجود بود، آن را نگه می‌داریم
-        if [[ -f "$DEST_DIR/moonmesh.backup.$(date +%s)" ]]; then
-            colorize cyan "🔄 Keeping existing moonmesh version"
+        local backup_file=$(ls -t "$DEST_DIR/moonmesh.backup."* 2>/dev/null | head -1)
+        if [[ -n "$backup_file" ]]; then
+            colorize cyan "🔄 Keeping existing moonmesh version: $(basename "$backup_file")"
         else
             colorize red "❌ No moonmesh manager available"
         fi
@@ -337,10 +489,17 @@ install_manager() {
 
 create_config_dir() {
     colorize yellow "📁 Creating config directory..."
+    colorize cyan "📂 Directory: $CONFIG_DIR"
 
-    mkdir -p "$CONFIG_DIR"
+    if mkdir -p "$CONFIG_DIR"; then
+        colorize green "✅ Config directory created successfully!"
+    else
+        colorize red "❌ Failed to create config directory"
+        exit 1
+    fi
 
     # ایجاد فایل README
+    colorize yellow "📝 Creating README file..."
     cat > "$CONFIG_DIR/README" << 'EOF'
 # EasyTier Configuration Directory
 
@@ -359,8 +518,9 @@ This directory contains EasyTier configuration files.
 - GitHub: https://github.com/k4lantar4/moonmesh
 - EasyTier: https://github.com/EasyTier/EasyTier
 EOF
-
-    colorize green "✅ Config directory created: $CONFIG_DIR"
+    
+    colorize green "✅ README file created!"
+    colorize green "🎯 Config directory setup completed: $CONFIG_DIR"
 }
 
 # =============================================================================
@@ -488,23 +648,55 @@ main() {
     # مراحل نصب
     colorize cyan "🔧 Starting EasyTier installation..."
     echo
+    
+    colorize white "📋 Installation Steps:"
+    echo "  1️⃣  Get latest version info"
+    echo "  2️⃣  Detect system architecture"
+    echo "  3️⃣  Install prerequisites"
+    echo "  4️⃣  Download and install EasyTier"
+    echo "  5️⃣  Install moonmesh manager"
+    echo "  6️⃣  Create configuration directory"
+    echo "  7️⃣  Test installation"
+    echo
 
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 1/7: Getting Version Information"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     get_latest_version
+    echo
+
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 2/7: Detecting Architecture"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     detect_architecture
+    echo
 
-    # نصب پیش‌نیازها
-    if command -v apt-get &> /dev/null; then
-        colorize yellow "📦 Installing prerequisites..."
-        apt-get update -qq
-        apt-get install -y curl unzip bc &> /dev/null
-    elif command -v yum &> /dev/null; then
-        colorize yellow "📦 Installing prerequisites..."
-        yum install -y curl unzip bc &> /dev/null
-    fi
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 3/7: Installing Prerequisites"
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    install_prerequisites
 
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 4/7: Downloading and Installing EasyTier"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     download_and_install
+    echo
+
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 5/7: Installing Moonmesh Manager"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     install_manager
+    echo
+
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 6/7: Creating Configuration Directory"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     create_config_dir
+    echo
+
+    colorize cyan "════════════════════════════════════════════════════════════════"
+    colorize cyan "Step 7/7: Testing Installation"
+    colorize cyan "════════════════════════════════════════════════════════════════"
     test_installation
 
     # نمایش خلاصه
