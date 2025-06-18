@@ -266,14 +266,6 @@ EOF
 }
 
 # =============================================================================
-# 2. نمایش Peers
-# =============================================================================
-
-
-
-
-
-# =============================================================================
 # 2. Live Peers Monitor
 # =============================================================================
 
@@ -291,39 +283,8 @@ live_peers_monitor() {
     # Trap Ctrl+C to return to main menu instead of exiting
     trap 'return' INT
 
-    # Show simplified peer information
-    while true; do
-        clear
-        colorize cyan "👥 Live Network Peers Monitor"
-        echo "📅 Updated: $(date '+%H:%M:%S')"
-        echo "=================================="
-
-        # Get peer information and format it nicely
-        PEER_INFO=$($EASY_CLIENT peer 2>/dev/null)
-
-        if [[ -n "$PEER_INFO" ]]; then
-            # Extract and display key information
-            echo "$PEER_INFO" | while IFS= read -r line; do
-                if [[ $line =~ "peer_id" ]]; then
-                    PEER_ID=$(echo "$line" | grep -oP '(?<=peer_id: )[^,]*')
-                    echo "🔗 Peer ID: $PEER_ID"
-                elif [[ $line =~ "ip" ]]; then
-                    IP=$(echo "$line" | grep -oP '(?<=ip: )[^,]*')
-                    echo "🌐 IP: $IP"
-                elif [[ $line =~ "latency" ]]; then
-                    LATENCY=$(echo "$line" | grep -oP '(?<=latency: )[^,]*')
-                    echo "⚡ Latency: $LATENCY"
-                    echo "──────────────────────────────────"
-                fi
-            done
-        else
-            colorize yellow "⚠️  No peers connected or service not running"
-        fi
-
-        echo
-        colorize blue "🔄 Refreshing every 2 seconds..."
-        sleep 2
-    done
+    # Use watch for real-time updates without full screen refresh
+    watch -n 0.5 -t "$EASY_CLIENT peer 2>/dev/null || echo 'Service not running'"
 
     # Reset trap
     trap - INT
@@ -347,7 +308,8 @@ display_routes() {
     # Trap Ctrl+C to return to main menu instead of exiting
     trap 'return' INT
 
-    watch -n2 "$EASY_CLIENT route"
+    # Use watch for real-time updates without full screen refresh
+    watch -n 0.5 -t "$EASY_CLIENT route 2>/dev/null || echo 'Service not running'"
 
     # Reset trap
     trap - INT
@@ -371,7 +333,8 @@ peer_center() {
     # Trap Ctrl+C to return to main menu instead of exiting
     trap 'return' INT
 
-    watch -n2 "$EASY_CLIENT peer-center"
+    # Use watch for real-time updates without full screen refresh
+    watch -n 0.5 -t "$EASY_CLIENT peer-center 2>/dev/null || echo 'Service not running'"
 
     # Reset trap
     trap - INT
@@ -461,8 +424,6 @@ watchdog_menu() {
     done
 }
 
-
-
 service_health_and_performance() {
     clear
     colorize cyan "📊 Service Health & Performance Monitor"
@@ -540,8 +501,6 @@ service_health_and_performance() {
     trap - INT
     press_key
 }
-
-
 
 setup_auto_restart() {
     colorize yellow "🔄 Setting up Auto-restart Timer"
@@ -788,27 +747,53 @@ view_watchdog_logs() {
     colorize cyan "📝 Live Watchdog Logs Monitor (Ctrl+C to return)"
     echo
 
-    # Trap Ctrl+C to return to watchdog menu
-    trap 'return' INT
+    # Check if ping watchdog service is active
+    if ! systemctl is-active --quiet easytier-ping-watchdog.service 2>/dev/null; then
+        colorize yellow "⚠️  Ping watchdog service is not active"
+        echo
+        colorize blue "💡 Tips:"
+        echo "  • Run 'Ping-based Watchdog' setup first"
+        echo "  • Check if watchdog service is enabled"
+        echo "  • Verify watchdog configuration"
+        echo
+        colorize cyan "📋 Available options:"
+        echo "  • Press Enter to return to watchdog menu"
+        echo "  • Check EasyTier service logs instead"
+        
+        read -p "Press Enter to continue..."
+        return
+    fi
+
+    # Trap Ctrl+C to return to watchdog menu instead of exiting
+    trap 'echo; colorize blue "🔙 Returning to watchdog menu..."; sleep 1; return' INT
 
     # Check if ping watchdog log exists
     if [[ -f "/var/log/easytier-ping-watchdog.log" ]]; then
-        colorize green "📊 Monitoring ping status and operations..."
+        colorize green "📊 Monitoring ping watchdog logs..."
         echo
-        # Show only ping status and operations
-        tail -f /var/log/easytier-ping-watchdog.log | grep -E "(Ping|Restart|recovered|failed)"
+        # Show watchdog logs with timeout to handle Ctrl+C properly
+        timeout 3600 tail -f /var/log/easytier-ping-watchdog.log 2>/dev/null | while read -r line; do
+            # Filter relevant log entries
+            if [[ "$line" =~ (Ping|Restart|recovered|failed|Starting|Stopping) ]]; then
+                echo "$line"
+            fi
+        done
     else
-        colorize yellow "⚠️  No ping watchdog logs found"
+        colorize yellow "⚠️  Ping watchdog log file not found"
         echo
-        colorize blue "📋 Available system logs:"
-        journalctl -u easytier-ping-watchdog -f --no-pager 2>/dev/null | grep -E "(Ping|Restart|recovered|failed)" || journalctl -u easytier -f --no-pager
+        colorize blue "📋 Showing systemd logs instead:"
+        echo
+        # Show systemd logs with timeout
+        timeout 3600 journalctl -u easytier-ping-watchdog -f --no-pager 2>/dev/null || {
+            colorize red "❌ Unable to access watchdog logs"
+            echo
+            read -p "Press Enter to return to watchdog menu..."
+        }
     fi
 
     # Reset trap
     trap - INT
 }
-
-
 
 remove_watchdog() {
     colorize yellow "🗑️  Removing All Watchdogs..."
@@ -1001,8 +986,6 @@ remove_service() {
 # =============================================================================
 # 10. Ping Test
 # =============================================================================
-
-
 
 # =============================================================================
 # 11. HAProxy Load Balancer Management
@@ -1395,14 +1378,34 @@ view_haproxy_logs() {
     colorize cyan "📝 Live HAProxy Logs Monitor (Ctrl+C to return)"
     echo
 
-    # Trap Ctrl+C to return to HAProxy menu
-    trap 'return' INT
+    # Check if HAProxy service is active
+    if ! systemctl is-active --quiet haproxy.service 2>/dev/null; then
+        colorize yellow "⚠️  HAProxy service is not active"
+        echo
+        colorize blue "💡 Tips:"
+        echo "  • Start HAProxy service first"
+        echo "  • Check HAProxy configuration"
+        echo "  • Verify HAProxy installation"
+        echo
+        read -p "Press Enter to return to HAProxy menu..."
+        return
+    fi
+
+    # Trap Ctrl+C to return to HAProxy menu instead of exiting
+    trap 'echo; colorize blue "🔙 Returning to HAProxy menu..."; sleep 1; return' INT
 
     if [[ -f "/var/log/haproxy.log" ]]; then
-        tail -f /var/log/haproxy.log
+        colorize green "📊 Monitoring HAProxy logs..."
+        echo
+        timeout 3600 tail -f /var/log/haproxy.log 2>/dev/null
     else
         colorize yellow "⚠️  HAProxy log file not found, showing systemd logs..."
-        journalctl -u haproxy -f --no-pager
+        echo
+        timeout 3600 journalctl -u haproxy -f --no-pager 2>/dev/null || {
+            colorize red "❌ Unable to access HAProxy logs"
+            echo
+            read -p "Press Enter to return to HAProxy menu..."
+        }
     fi
 
     # Reset trap
