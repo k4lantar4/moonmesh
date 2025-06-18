@@ -1605,31 +1605,31 @@ EOF
 
 display_menu() {
     clear
-    # Header زیبا مشابه Easy-Mesh
+    # Header زیبا و مرتب
     echo -e "   ${CYAN}╔════════════════════════════════════════╗"
-    echo -e "   ║            🌐 ${WHITE}EasyTier Manager         ${CYAN}║"
-    echo -e "   ║        ${WHITE}Simple Mesh Network Solution    ${CYAN}║"
+    echo -e "   ║            ${WHITE}EasyTier Manager            ${CYAN}║"
+    echo -e "   ║       ${WHITE}Simple Mesh Network Solution    ${CYAN}║"
     echo -e "   ╠════════════════════════════════════════╣"
     echo -e "   ║  ${WHITE}Version: 2.0 (K4lantar4)           ${CYAN}║"
-    echo -e "   ║  ${WHITE}GitHub: k4lantar4/moonmesh           ${CYAN}║"
-    echo -e "   ╠════════════════════════════════════════╣${NC}"
+    echo -e "   ║  ${WHITE}GitHub: k4lantar4/moonmesh          ${CYAN}║"
+    echo -e "   ╠════════════════════════════════════════╣"
     echo -e "   ║        $(check_core_status)         ║"
-    echo -e "   ╚════════════════════════════════════════╝"
+    echo -e "   ╚════════════════════════════════════════╝${NC}"
 
     echo
-    colorize green "	[1] 🚀 Quick Connect to Network"
-    colorize cyan "	[2] 👥 Live Peers Monitor"
-    colorize yellow "	[3] 🛣️  Display Routes"
-    colorize blue "	[4] 🎯 Peer-Center"
-    colorize purple "	[5] 🔐 Display Secret Key"
-    colorize white "	[6] 📊 View Service Status"
-    colorize magenta "	[7] 🐕 Watchdog & Stability"
-    colorize yellow "	[8] 🔄 Restart Service"
-    colorize red "	[9] 🗑️  Remove Service"
-    colorize blue "	[10] 🔄 HAProxy Load Balancer"
-    colorize cyan "	[11] 📊 Service Health & Performance"
-    colorize green "	[12] ⚡ Network Optimization"
-    echo -e "	[0] 🚪 Exit"
+    colorize green "   [1]  Quick Connect to Network"
+    colorize cyan "   [2]  Live Peers Monitor"
+    colorize yellow "   [3]  Display Routes"
+    colorize blue "   [4]  Peer-Center"
+    colorize purple "   [5]  Display Secret Key"
+    colorize white "   [6]  View Service Status"
+    colorize magenta "   [7]  Watchdog & Stability"
+    colorize yellow "   [8]  Restart Service"
+    colorize red "   [9]  Remove Service"
+    colorize blue "   [10] HAProxy Load Balancer"
+    colorize cyan "   [11] Service Health & Performance"
+    colorize green "   [12] Network Optimization"
+    echo -e "   [0]  Exit"
     echo
 }
 
@@ -1638,8 +1638,8 @@ display_menu() {
 # =============================================================================
 
 read_option() {
-    echo -e "\t-------------------------------"
-    echo -en "\t${MAGENTA}Enter your choice: ${NC}"
+    echo -e "   -------------------------------"
+    echo -en "   ${MAGENTA}Enter your choice: ${NC}"
     read -r choice
     case $choice in
         1) quick_connect ;;

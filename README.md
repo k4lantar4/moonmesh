@@ -33,27 +33,28 @@ sudo moonmesh
 
 ```
 ╔════════════════════════════════════════╗
-║            🌐 EasyTier Manager         ║
-║        Simple Mesh Network Solution    ║
+║            EasyTier Manager            ║
+║       Simple Mesh Network Solution    ║
 ╠════════════════════════════════════════╣
 ║  Version: 2.0 (K4lantar4)           ║
-║  GitHub: k4lantar4/moonmesh           ║
+║  GitHub: k4lantar4/moonmesh          ║
 ╠════════════════════════════════════════╣
 ║        EasyTier Core Installed        ║
 ╚════════════════════════════════════════╝
 
-[1] 🚀 Quick Connect to Network
-[2] 👥 Network Peers (Enhanced)
-[3] 🛣️  Network Routes & Status
-[4] 🎯 Peer-Center
-[5] 🔐 Display Secret Key
-[6] 📊 View Service Status
-[7] 🐕 Watchdog & Stability
-[8] 🔄 Restart Service (Enhanced)
-[9] 🗑️  Remove Service
-[10] 🏓 Ping Test
-[11] ⚡ Network Optimization
-[0] 🚪 Exit
+[1]  Quick Connect to Network
+[2]  Live Peers Monitor
+[3]  Display Routes
+[4]  Peer-Center
+[5]  Display Secret Key
+[6]  View Service Status
+[7]  Watchdog & Stability
+[8]  Restart Service
+[9]  Remove Service
+[10] HAProxy Load Balancer
+[11] Service Health & Performance
+[12] Network Optimization
+[0]  Exit
 ```
 
 ### 📋 **تغییرات گزینه‌ها:**
