@@ -25,6 +25,11 @@ detect_mode() {
         return 2  # Auto install mode
     fi
     
+    # حالت نصب لوکال (آفلاین)
+    if [[ "$1" == "--local" ]] || [[ "$1" == "--local-install" ]] || [[ "$1" == "-l" ]]; then
+        return 5  # Local install mode
+    fi
+    
     # حالت help
     if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
         return 4  # Help mode
@@ -124,6 +129,26 @@ prepare_system() {
     log green "System prepared"
 }
 
+# بررسی و آماده‌سازی سیستم برای نصب لوکال (آفلاین)
+prepare_system_local() {
+    log cyan "Preparing system for local installation..."
+    
+    # بررسی root
+    if [[ $EUID -ne 0 ]]; then
+        log red "Root access required. Usage: sudo $0 --local"
+        exit 1
+    fi
+    
+    # توقف سرویس‌های در حال اجرا (سریع و بدون تعامل)
+    if systemctl is-active --quiet easytier 2>/dev/null; then
+        systemctl stop easytier 2>/dev/null || true
+    fi
+    pkill -f "easytier-core" 2>/dev/null || true
+    sleep 1
+    
+    log green "System prepared for local installation"
+}
+
 # دانلود و نصب EasyTier + MoonMesh
 install_easytier_and_moonmesh() {
     log cyan "Getting latest version and downloading..."
@@ -204,6 +229,69 @@ install_easytier_and_moonmesh() {
     cd / && rm -rf "$temp_dir"
 }
 
+# نصب لوکال EasyTier + MoonMesh (بدون دانلود)
+install_easytier_local() {
+    log cyan "Installing EasyTier from local directory..."
+    
+    # بررسی وجود پوشه easytier در دایرکتوری کنونی
+    local current_dir=$(pwd)
+    local easytier_local_dir="$current_dir/easytier"
+    
+    if [[ ! -d "$easytier_local_dir" ]]; then
+        log red "Local easytier directory not found: $easytier_local_dir"
+        log yellow "Please ensure the 'easytier' folder exists in the current directory"
+        log yellow "Directory structure should be:"
+        log yellow "  ./easytier/"
+        log yellow "    ├── easytier-core"
+        log yellow "    └── easytier-cli"
+        exit 1
+    fi
+    
+    # بررسی وجود فایل‌های لازم
+    local easytier_core="$easytier_local_dir/easytier-core"
+    local easytier_cli="$easytier_local_dir/easytier-cli"
+    
+    if [[ ! -f "$easytier_core" ]]; then
+        log red "easytier-core not found in: $easytier_core"
+        exit 1
+    fi
+    
+    if [[ ! -f "$easytier_cli" ]]; then
+        log red "easytier-cli not found in: $easytier_cli"
+        exit 1
+    fi
+    
+    # بررسی اینکه فایل‌ها executable هستند
+    if [[ ! -x "$easytier_core" ]]; then
+        log yellow "Making easytier-core executable..."
+        chmod +x "$easytier_core" || { log red "Failed to make easytier-core executable"; exit 1; }
+    fi
+    
+    if [[ ! -x "$easytier_cli" ]]; then
+        log yellow "Making easytier-cli executable..."
+        chmod +x "$easytier_cli" || { log red "Failed to make easytier-cli executable"; exit 1; }
+    fi
+    
+    # نصب EasyTier binaries
+    log cyan "Installing EasyTier binaries..."
+    cp "$easytier_core" "$DEST_DIR/" || { log red "Failed to install easytier-core"; exit 1; }
+    cp "$easytier_cli" "$DEST_DIR/" || { log red "Failed to install easytier-cli"; exit 1; }
+    
+    log green "EasyTier binaries installed from local directory"
+    
+    # نصب MoonMesh manager
+    log cyan "Installing MoonMesh manager..."
+    
+    # کپی محلی اسکریپت فعلی
+    if [[ -f "$0" ]] && [[ -s "$0" ]]; then
+        cp "$0" "$DEST_DIR/moonmesh" && chmod +x "$DEST_DIR/moonmesh"
+        log green "MoonMesh manager installed (local copy)"
+    else
+        log red "Failed to copy MoonMesh manager"
+        exit 1
+    fi
+}
+
 # تنظیمات نهایی نصب
 finalize_installation() {
     log cyan "Finalizing setup..."
@@ -235,7 +323,27 @@ show_install_summary() {
     log cyan "Ready to create your mesh network! 🚀"
 }
 
-# تابع اصلی نصب
+# نمایش خلاصه نصب لوکال
+show_local_install_summary() {
+    echo
+    log green "🎉 EasyTier & MoonMesh installed successfully from local files!"
+    echo
+    echo "📦 Installed Components:"
+    echo "  ✅ EasyTier Core: $DEST_DIR/easytier-core"
+    echo "  ✅ EasyTier CLI: $DEST_DIR/easytier-cli"
+    echo "  ✅ MoonMesh Manager: $DEST_DIR/moonmesh"
+    echo
+    echo "🚀 Quick Start:"
+    echo "  sudo moonmesh"
+    echo
+    echo "📖 Manual Usage:"
+    echo "  sudo $DEST_DIR/easytier-core --help"
+    echo "  sudo $DEST_DIR/easytier-cli --help"
+    echo
+    log cyan "✨ Ready to create your mesh network! (No internet required)"
+}
+
+# تابع اصلی نصب (آنلاین)
 run_installer() {
     local auto_mode="$1"
     
@@ -265,6 +373,61 @@ run_installer() {
     log green "Installation completed! ⚡"
 }
 
+# تابع نصب لوکال (آفلاین)
+run_local_installer() {
+    print_install_header
+    
+    echo
+    log yellow "🔧 Local Installation Mode (Offline)"
+    log cyan "This will install EasyTier from local 'easytier' directory"
+    echo "Components:"
+    echo "  • EasyTier Core & CLI (from ./easytier/ directory)"
+    echo "  • MoonMesh Manager (this script)"
+    echo "  • No internet connection required"
+    echo "  • No additional downloads"
+    echo
+    
+    # بررسی وجود پوشه easytier
+    if [[ ! -d "./easytier" ]]; then
+        log red "❌ Local 'easytier' directory not found!"
+        echo
+        log yellow "📁 Required directory structure:"
+        echo "  ./easytier/"
+        echo "    ├── easytier-core"
+        echo "    └── easytier-cli"
+        echo
+        log yellow "💡 Steps to prepare:"
+        echo "  1. Create 'easytier' directory in current location"
+        echo "  2. Download EasyTier binaries from GitHub releases"
+        echo "  3. Extract and place easytier-core and easytier-cli in ./easytier/"
+        echo "  4. Run: sudo $0 --local"
+        exit 1
+    fi
+    
+    # نمایش محتویات پوشه easytier
+    log cyan "📁 Found easytier directory contents:"
+    ls -la ./easytier/ | grep -E "(easytier-core|easytier-cli)" || {
+        log red "❌ Required files not found in ./easytier/"
+        log yellow "💡 Ensure easytier-core and easytier-cli are present"
+        exit 1
+    }
+    echo
+    
+    read -p "Continue with local installation? [Y/n]: " confirm_install
+    if [[ "$confirm_install" =~ ^[Nn]$ ]]; then
+        log cyan "Installation cancelled by user"
+        exit 0
+    fi
+    
+    # مراحل نصب لوکال
+    prepare_system_local
+    install_easytier_local
+    finalize_installation
+    show_local_install_summary
+    
+    log green "Local installation completed! ⚡"
+}
+
 # =============================================================================
 # Selection Menu for Direct Curl Usage
 # =============================================================================
@@ -278,35 +441,44 @@ show_selection_menu() {
     echo
     echo -e "${GREEN}Choose an option:${NC}"
     echo
-    echo -e "${CYAN}1) 🚀 Install EasyTier & MoonMesh${NC}"
+    echo -e "${CYAN}1) 🚀 Install EasyTier & MoonMesh (Online)${NC}"
     echo "   Download and install everything to your system"
     echo
-    echo -e "${BLUE}2) 📱 Run Manager (Temporary)${NC}"
+    echo -e "${PURPLE}2) 📦 Install from Local Directory (Offline)${NC}"
+    echo "   Install from local 'easytier' folder (no internet needed)"
+    echo
+    echo -e "${BLUE}3) 📱 Run Manager (Temporary)${NC}"
     echo "   Use MoonMesh manager without installing"
     echo
-    echo -e "${YELLOW}3) ℹ️  Show Installation Commands${NC}"
+    echo -e "${YELLOW}4) ℹ️  Show Installation Commands${NC}"
     echo "   Display copy-paste installation commands"
     echo
     echo -e "${WHITE}0) ❌ Exit${NC}"
     echo
-    echo -e "${PURPLE}💡 Tip: For permanent installation, choose option 1${NC}"
+    echo -e "${PURPLE}💡 Tip: For permanent installation, choose option 1 or 2${NC}"
     echo
-    read -p "Select [0-3]: " selection_choice
+    read -p "Select [0-4]: " selection_choice
 
     case $selection_choice in
         1)
             echo
-            log cyan "Starting installation..."
+            log cyan "Starting online installation..."
             sleep 1
             run_installer
             ;;
         2)
             echo
+            log cyan "Starting local installation..."
+            sleep 1
+            run_local_installer
+            ;;
+        3)
+            echo
             log cyan "Running temporary manager..."
             sleep 1
             run_manager_mode
             ;;
-        3)
+        4)
             show_installation_commands
             ;;
         0)
@@ -328,15 +500,26 @@ show_installation_commands() {
     echo -e "${CYAN}📋 Installation Commands${NC}"
     echo "========================"
     echo
-    echo -e "${GREEN}Method 1: Direct Install${NC}"
+    echo -e "${GREEN}Method 1: Online Direct Install${NC}"
     echo "curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install"
     echo
-    echo -e "${GREEN}Method 2: Auto Install (no prompts)${NC}"
+    echo -e "${GREEN}Method 2: Online Auto Install (no prompts)${NC}"
     echo "curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto"
     echo
-    echo -e "${GREEN}Method 3: Download & Install${NC}"
+    echo -e "${GREEN}Method 3: Download & Online Install${NC}"
     echo "wget https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh"
     echo "sudo bash moonmesh.sh --install"
+    echo
+    echo -e "${PURPLE}Method 4: Local Offline Install${NC}"
+    echo "# 1. Download EasyTier binaries manually"
+    echo "# 2. Create 'easytier' directory and place binaries inside"
+    echo "# 3. Run local installation:"
+    echo "sudo bash moonmesh.sh --local"
+    echo
+    echo -e "${CYAN}Local Installation Structure:${NC}"
+    echo "./easytier/"
+    echo "  ├── easytier-core"
+    echo "  └── easytier-cli"
     echo
     echo -e "${YELLOW}After installation, run:${NC}"
     echo "sudo moonmesh"
@@ -358,16 +541,20 @@ show_help() {
     echo "  sudo $0 [OPTION]"
     echo
     echo -e "${GREEN}OPTIONS:${NC}"
-    echo -e "${CYAN}  --install, -i${NC}      Install EasyTier & MoonMesh to system"
-    echo -e "${CYAN}  --auto${NC}             Auto install without prompts"
+    echo -e "${CYAN}  --install, -i${NC}      Install EasyTier & MoonMesh to system (online)"
+    echo -e "${CYAN}  --auto${NC}             Auto install without prompts (online)"
+    echo -e "${CYAN}  --local, -l${NC}        Install from local 'easytier' directory (offline)"
     echo -e "${CYAN}  --help, -h${NC}         Show this help message"
     echo
     echo -e "${GREEN}EXAMPLES:${NC}"
-    echo -e "${YELLOW}  # Install via curl (recommended):${NC}"
+    echo -e "${YELLOW}  # Online install via curl (recommended):${NC}"
     echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install"
     echo
-    echo -e "${YELLOW}  # Auto install without prompts:${NC}"
+    echo -e "${YELLOW}  # Auto install without prompts (online):${NC}"
     echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto"
+    echo
+    echo -e "${YELLOW}  # Local offline install:${NC}"
+    echo "  sudo bash moonmesh.sh --local"
     echo
     echo -e "${YELLOW}  # Run temporarily without installing:${NC}"
     echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash"
@@ -1398,15 +1585,184 @@ remove_service() {
 # Install HAProxy if not present
 install_haproxy() {
     if ! command -v haproxy &> /dev/null; then
-        if command -v apt-get &> /dev/null; then
-            colorize yellow "📦 Installing HAProxy..."
-            apt-get update -qq
-            apt-get install -y haproxy jq
-            colorize green "✅ HAProxy installed successfully"
-        else
-            colorize red "❌ Unsupported package manager. Please install HAProxy manually."
-            return 1
+        colorize yellow "⚠️  HAProxy not found on system"
+        echo
+        colorize blue "📦 HAProxy Installation Options:"
+        echo "1) Install from local .deb packages (Offline)"
+        echo "2) Install from system repositories (Online)"
+        echo "3) Use pre-compiled binary (Offline)"
+        echo "4) Skip HAProxy installation"
+        echo
+        read -p "Select installation method [1-4]: " install_choice
+        
+        case $install_choice in
+            1)
+                install_haproxy_offline_deb
+                ;;
+            2)
+                install_haproxy_online
+                ;;
+            3)
+                install_haproxy_binary
+                ;;
+            4)
+                colorize blue "ℹ️  Skipping HAProxy installation"
+                colorize yellow "💡 You can install HAProxy manually later"
+                return 1
+                ;;
+            *)
+                colorize red "❌ Invalid option"
+                return 1
+                ;;
+        esac
+    fi
+}
+
+# نصب آفلاین HAProxy از طریق فایل‌های .deb محلی
+install_haproxy_offline_deb() {
+    colorize cyan "📦 Installing HAProxy from local .deb packages..."
+    
+    # بررسی وجود پوشه haproxy-packages
+    local haproxy_packages_dir="./haproxy-packages"
+    
+    if [[ ! -d "$haproxy_packages_dir" ]]; then
+        colorize red "❌ Local haproxy-packages directory not found!"
+        echo
+        colorize yellow "📁 Required directory structure:"
+        echo "  ./haproxy-packages/"
+        echo "    ├── haproxy_*.deb"
+        echo "    ├── libssl*.deb (if needed)"
+        echo "    └── other dependencies..."
+        echo
+        colorize yellow "💡 How to prepare offline packages:"
+        echo "  1. On a system with internet:"
+        echo "     mkdir haproxy-packages && cd haproxy-packages"
+        echo "     apt-get download haproxy"
+        echo "     apt-get download \$(apt-cache depends haproxy | grep Depends | awk '{print \$2}')"
+        echo "  2. Copy haproxy-packages folder to target system"
+        echo "  3. Run installation again"
+        return 1
+    fi
+    
+    # نمایش فایل‌های موجود
+    colorize cyan "📁 Found packages:"
+    ls -la "$haproxy_packages_dir"/*.deb 2>/dev/null || {
+        colorize red "❌ No .deb files found in $haproxy_packages_dir"
+        return 1
+    }
+    echo
+    
+    # نصب پکیج‌ها
+    colorize yellow "🔧 Installing packages..."
+    if dpkg -i "$haproxy_packages_dir"/*.deb 2>/dev/null; then
+        colorize green "✅ HAProxy installed successfully from local packages"
+        
+        # رفع مشکلات dependency در صورت وجود
+        if ! command -v haproxy &> /dev/null; then
+            colorize yellow "🔧 Fixing dependencies..."
+            apt-get install -f -y 2>/dev/null || true
         fi
+        
+        return 0
+    else
+        colorize red "❌ Failed to install from local packages"
+        colorize yellow "💡 Try fixing dependencies or use another method"
+        return 1
+    fi
+}
+
+# نصب آنلاین HAProxy (روش قدیمی)
+install_haproxy_online() {
+    if command -v apt-get &> /dev/null; then
+        colorize yellow "📦 Installing HAProxy online..."
+        apt-get update -qq
+        apt-get install -y haproxy jq
+        colorize green "✅ HAProxy installed successfully"
+        return 0
+    elif command -v yum &> /dev/null; then
+        colorize yellow "📦 Installing HAProxy online..."
+        yum install -y haproxy
+        colorize green "✅ HAProxy installed successfully"
+        return 0
+    elif command -v dnf &> /dev/null; then
+        colorize yellow "📦 Installing HAProxy online..."
+        dnf install -y haproxy
+        colorize green "✅ HAProxy installed successfully"
+        return 0
+    else
+        colorize red "❌ Unsupported package manager for online installation"
+        return 1
+    fi
+}
+
+# نصب HAProxy از طریق باینری آماده
+install_haproxy_binary() {
+    colorize cyan "📦 Installing HAProxy from pre-compiled binary..."
+    
+    local haproxy_binary_dir="./haproxy-binary"
+    local haproxy_binary="$haproxy_binary_dir/haproxy"
+    
+    if [[ ! -d "$haproxy_binary_dir" ]]; then
+        colorize red "❌ Local haproxy-binary directory not found!"
+        echo
+        colorize yellow "📁 Required directory structure:"
+        echo "  ./haproxy-binary/"
+        echo "    └── haproxy (executable binary)"
+        echo
+        colorize yellow "💡 How to prepare binary:"
+        echo "  1. Download HAProxy binary for your architecture"
+        echo "  2. Create 'haproxy-binary' directory"
+        echo "  3. Place 'haproxy' binary inside"
+        echo "  4. Run installation again"
+        return 1
+    fi
+    
+    if [[ ! -f "$haproxy_binary" ]]; then
+        colorize red "❌ HAProxy binary not found: $haproxy_binary"
+        return 1
+    fi
+    
+    # بررسی executable بودن
+    if [[ ! -x "$haproxy_binary" ]]; then
+        colorize yellow "🔧 Making HAProxy binary executable..."
+        chmod +x "$haproxy_binary" || {
+            colorize red "❌ Failed to make binary executable"
+            return 1
+        }
+    fi
+    
+    # کپی به مسیر سیستم
+    colorize yellow "🔧 Installing HAProxy binary..."
+    cp "$haproxy_binary" "/usr/local/bin/haproxy" || {
+        colorize red "❌ Failed to copy binary to /usr/local/bin/"
+        return 1
+    }
+    
+    # ایجاد symlink برای سازگاری
+    if [[ ! -f "/usr/bin/haproxy" ]]; then
+        ln -s "/usr/local/bin/haproxy" "/usr/bin/haproxy" 2>/dev/null || true
+    fi
+    
+    # ایجاد کاربر و گروه haproxy
+    if ! id -u haproxy &>/dev/null; then
+        colorize yellow "👤 Creating haproxy user..."
+        useradd -r -s /bin/false -d /var/lib/haproxy haproxy 2>/dev/null || true
+    fi
+    
+    # ایجاد دایرکتوری‌های مورد نیاز
+    mkdir -p /var/lib/haproxy
+    mkdir -p /run/haproxy
+    chown -R haproxy:haproxy /var/lib/haproxy /run/haproxy 2>/dev/null || true
+    
+    # تست عملکرد
+    if /usr/local/bin/haproxy -v &>/dev/null; then
+        colorize green "✅ HAProxy binary installed successfully"
+        colorize cyan "📋 HAProxy Version:"
+        /usr/local/bin/haproxy -v
+        return 0
+    else
+        colorize red "❌ HAProxy binary installation failed"
+        return 1
     fi
 }
 
@@ -1446,9 +1802,11 @@ haproxy_menu() {
         echo -e "${CYAN}4) 🔄 Restart HAProxy Service${NC}"
         echo -e "${PURPLE}5) 📝 View Live HAProxy Logs${NC}"
         echo -e "${RED}6) 🗑️  Remove HAProxy Configuration${NC}"
+        echo -e "${MAGENTA}7) 📦 Generate Offline Package Script${NC}"
+        echo -e "${GREEN}8) 📦 Install from Local Packages (Offline)${NC}"
         echo -e "${WHITE}0) ⬅️  Back to Main Menu${NC}"
         echo
-        read -p "Select [0-6]: " haproxy_choice
+        read -p "Select [0-8]: " haproxy_choice
 
         case $haproxy_choice in
             1) configure_haproxy_tunnel ;;
@@ -1457,6 +1815,8 @@ haproxy_menu() {
             4) restart_haproxy_service ;;
             5) view_haproxy_logs ;;
             6) remove_haproxy_config ;;
+            7) generate_offline_package_script ;;
+            8) install_haproxy_from_local_packages ;;
             0) trap - INT; return ;;
             *) colorize red "❌ Invalid option" ;;
         esac
@@ -1843,6 +2203,566 @@ remove_haproxy_config() {
     press_key
 }
 
+# نصب HAProxy از پکیج‌های محلی آماده
+install_haproxy_from_local_packages() {
+    clear
+    colorize cyan "📦 Install HAProxy from Local Packages"
+    echo
+    
+    # بررسی وجود HAProxy
+    if command -v haproxy &> /dev/null; then
+        colorize yellow "⚠️  HAProxy is already installed"
+        haproxy -v
+        echo
+        read -p "Do you want to reinstall? [y/N]: " reinstall_confirm
+        if [[ ! "$reinstall_confirm" =~ ^[Yy]$ ]]; then
+            colorize blue "ℹ️  Installation cancelled"
+            press_key
+            return
+        fi
+    fi
+    
+    colorize yellow "🔍 Searching for local HAProxy packages..."
+    echo
+    
+    # لیست مسیرهای احتمالی برای جستجو
+    local search_paths=(
+        "./haproxy-packages"
+        "/root/moonmesh/haproxy-packages"
+        "./haproxy-packages-rpm"
+        "/root/moonmesh/haproxy-packages-rpm"
+        "./haproxy-binary"
+        "/root/moonmesh/haproxy-binary"
+    )
+    
+    local found_packages=()
+    local package_type=""
+    
+    # جستجو در مسیرهای مختلف
+    for search_path in "${search_paths[@]}"; do
+        if [[ -d "$search_path" ]]; then
+            # بررسی پکیج‌های .deb
+            if ls "$search_path"/*.deb &>/dev/null; then
+                found_packages+=("$search_path (.deb packages)")
+                [[ -z "$package_type" ]] && package_type="deb"
+            fi
+            
+            # بررسی پکیج‌های .rpm
+            if ls "$search_path"/*.rpm &>/dev/null; then
+                found_packages+=("$search_path (.rpm packages)")
+                [[ -z "$package_type" ]] && package_type="rpm"
+            fi
+            
+            # بررسی باینری
+            if [[ -f "$search_path/haproxy" ]]; then
+                found_packages+=("$search_path (binary)")
+                [[ -z "$package_type" ]] && package_type="binary"
+            fi
+        fi
+    done
+    
+    # نمایش نتایج جستجو
+    if [[ ${#found_packages[@]} -eq 0 ]]; then
+        colorize red "❌ No HAProxy packages found!"
+        echo
+        colorize yellow "📁 Expected directory structures:"
+        echo "  • ./haproxy-packages/ (for .deb files)"
+        echo "  • ./haproxy-packages-rpm/ (for .rpm files)"
+        echo "  • ./haproxy-binary/ (for binary file)"
+        echo
+        colorize yellow "💡 How to prepare packages:"
+        echo "  1. Use 'Generate Offline Package Script' option"
+        echo "  2. Run the script on a system with internet"
+        echo "  3. Copy generated directories here"
+        echo "  4. Try this installation again"
+        press_key
+        return
+    fi
+    
+    colorize green "✅ Found HAProxy packages:"
+    for i in "${!found_packages[@]}"; do
+        echo "  $((i+1))) ${found_packages[$i]}"
+    done
+    echo
+    
+    # انتخاب پکیج برای نصب
+    if [[ ${#found_packages[@]} -eq 1 ]]; then
+        selected_index=0
+        colorize cyan "🔧 Auto-selecting the only available package..."
+    else
+        read -p "Select package to install [1-${#found_packages[@]}]: " user_choice
+        selected_index=$((user_choice - 1))
+        
+        if [[ $selected_index -lt 0 ]] || [[ $selected_index -ge ${#found_packages[@]} ]]; then
+            colorize red "❌ Invalid selection"
+            press_key
+            return
+        fi
+    fi
+    
+    local selected_package="${found_packages[$selected_index]}"
+    local package_path=$(echo "$selected_package" | cut -d' ' -f1)
+    
+    colorize cyan "📦 Installing from: $package_path"
+    echo
+    
+    # نصب بر اساس نوع پکیج
+    if [[ "$selected_package" == *".deb"* ]]; then
+        install_haproxy_from_deb_packages "$package_path"
+    elif [[ "$selected_package" == *".rpm"* ]]; then
+        install_haproxy_from_rpm_packages "$package_path"
+    elif [[ "$selected_package" == *"binary"* ]]; then
+        install_haproxy_from_binary "$package_path"
+    else
+        colorize red "❌ Unknown package type"
+        press_key
+        return
+    fi
+    
+    # تست نصب
+    echo
+    colorize cyan "🔍 Testing installation..."
+    if command -v haproxy &> /dev/null; then
+        colorize green "✅ HAProxy installed successfully!"
+        echo
+        colorize cyan "📋 HAProxy Version:"
+        haproxy -v
+        echo
+        colorize yellow "💡 You can now configure HAProxy using other menu options"
+    else
+        colorize red "❌ HAProxy installation verification failed"
+    fi
+    
+    press_key
+}
+
+# نصب از پکیج‌های .deb
+install_haproxy_from_deb_packages() {
+    local package_path="$1"
+    
+    colorize yellow "🔧 Installing .deb packages..."
+    
+    # شمارش پکیج‌ها
+    local package_count=$(ls "$package_path"/*.deb 2>/dev/null | wc -l)
+    colorize cyan "📊 Found $package_count .deb packages"
+    
+    # نصب پکیج‌ها
+    if dpkg -i "$package_path"/*.deb 2>/dev/null; then
+        colorize green "✅ Packages installed successfully"
+    else
+        colorize yellow "⚠️  Some dependency issues detected, attempting to fix..."
+        
+        # تلاش برای رفع dependency ها
+        if apt-get install -f -y 2>/dev/null; then
+            colorize green "✅ Dependencies fixed successfully"
+        else
+            colorize red "❌ Could not fix all dependencies"
+            colorize yellow "💡 You may need to install missing dependencies manually"
+        fi
+    fi
+}
+
+# نصب از پکیج‌های .rpm
+install_haproxy_from_rpm_packages() {
+    local package_path="$1"
+    
+    colorize yellow "🔧 Installing .rpm packages..."
+    
+    # شمارش پکیج‌ها
+    local package_count=$(ls "$package_path"/*.rpm 2>/dev/null | wc -l)
+    colorize cyan "📊 Found $package_count .rpm packages"
+    
+    # نصب پکیج‌ها
+    if rpm -ivh "$package_path"/*.rpm --force 2>/dev/null; then
+        colorize green "✅ Packages installed successfully"
+    else
+        colorize yellow "⚠️  Attempting installation with dependency override..."
+        if rpm -ivh "$package_path"/*.rpm --force --nodeps 2>/dev/null; then
+            colorize green "✅ Packages installed (dependencies bypassed)"
+            colorize yellow "💡 You may need to install missing dependencies manually"
+        else
+            colorize red "❌ Package installation failed"
+        fi
+    fi
+}
+
+# نصب از باینری
+install_haproxy_from_binary() {
+    local package_path="$1"
+    local binary_file="$package_path/haproxy"
+    
+    colorize yellow "🔧 Installing HAProxy binary..."
+    
+    # بررسی وجود فایل
+    if [[ ! -f "$binary_file" ]]; then
+        colorize red "❌ Binary file not found: $binary_file"
+        return 1
+    fi
+    
+    # بررسی executable بودن
+    if [[ ! -x "$binary_file" ]]; then
+        colorize yellow "🔧 Making binary executable..."
+        chmod +x "$binary_file" || {
+            colorize red "❌ Failed to make binary executable"
+            return 1
+        }
+    fi
+    
+    # کپی به مسیر سیستم
+    colorize yellow "📁 Installing to system directories..."
+    cp "$binary_file" "/usr/local/bin/haproxy" || {
+        colorize red "❌ Failed to copy binary to /usr/local/bin/"
+        return 1
+    }
+    
+    # ایجاد symlink برای سازگاری
+    if [[ ! -f "/usr/bin/haproxy" ]]; then
+        ln -s "/usr/local/bin/haproxy" "/usr/bin/haproxy" 2>/dev/null || true
+    fi
+    
+    # ایجاد کاربر و گروه haproxy
+    if ! id -u haproxy &>/dev/null; then
+        colorize yellow "👤 Creating haproxy user..."
+        useradd -r -s /bin/false -d /var/lib/haproxy haproxy 2>/dev/null || true
+    fi
+    
+    # ایجاد دایرکتوری‌های مورد نیاز
+    mkdir -p /var/lib/haproxy /run/haproxy
+    chown -R haproxy:haproxy /var/lib/haproxy /run/haproxy 2>/dev/null || true
+    
+    colorize green "✅ Binary installation completed"
+}
+
+# تولید اسکریپت آماده‌سازی پکیج‌های آفلاین
+generate_offline_package_script() {
+    clear
+    colorize cyan "📦 Generate Offline Package Preparation Script"
+    echo
+    
+    colorize yellow "This will create a script to download HAProxy packages for offline installation"
+    echo
+    
+    # تشخیص معماری و نسخه سیستم
+    local arch=$(uname -m)
+    local os_info=""
+    
+    if [[ -f "/etc/os-release" ]]; then
+        os_info=$(grep -E '^(ID|VERSION_ID)=' /etc/os-release | tr '\n' ' ')
+    fi
+    
+    colorize cyan "📋 System Information:"
+    echo "  Architecture: $arch"
+    echo "  OS Info: $os_info"
+    echo
+    
+    # انتخاب نوع پکیج
+    colorize blue "📦 Select package type to prepare:"
+    echo "1) .deb packages (Ubuntu/Debian)"
+    echo "2) .rpm packages (CentOS/RHEL/Fedora)"
+    echo "3) Pre-compiled binary"
+    echo "4) All methods"
+    echo
+    read -p "Select [1-4]: " package_choice
+    
+    local script_name="prepare_haproxy_offline.sh"
+    
+    # ایجاد اسکریپت
+    cat > "$script_name" << 'SCRIPT_START'
+#!/bin/bash
+
+# HAProxy Offline Package Preparation Script
+# Generated by MoonMesh
+# Run this script on a system with internet connection
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log() {
+    local color="$1"
+    local text="$2"
+    case $color in
+        red) echo -e "${RED}❌ $text${NC}" ;;
+        green) echo -e "${GREEN}✅ $text${NC}" ;;
+        yellow) echo -e "${YELLOW}⚠️  $text${NC}" ;;
+        cyan) echo -e "${CYAN}🔧 $text${NC}" ;;
+        *) echo -e "$text" ;;
+    esac
+}
+
+echo -e "${CYAN}📦 HAProxy Offline Package Preparation${NC}"
+echo "========================================"
+echo
+
+SCRIPT_START
+
+    case $package_choice in
+        1|4)
+            # اضافه کردن بخش .deb
+            cat >> "$script_name" << 'DEB_SECTION'
+# ========================================
+# Prepare .deb packages (Ubuntu/Debian)
+# ========================================
+
+prepare_deb_packages() {
+    log cyan "Preparing .deb packages for Ubuntu/Debian..."
+    
+    if ! command -v apt-get &> /dev/null; then
+        log red "apt-get not found. This section requires Ubuntu/Debian."
+        return 1
+    fi
+    
+    # ایجاد دایرکتوری
+    mkdir -p haproxy-packages
+    cd haproxy-packages
+    
+    log yellow "Updating package lists..."
+    apt-get update -qq
+    
+    log cyan "Downloading HAProxy and dependencies..."
+    
+    # دانلود HAProxy
+    apt-get download haproxy
+    
+    # دانلود dependency ها
+    DEPS=$(apt-cache depends haproxy | grep "Depends:" | awk '{print $2}' | grep -v "<" | sort -u)
+    
+    for dep in $DEPS; do
+        log cyan "Downloading dependency: $dep"
+        apt-get download "$dep" 2>/dev/null || log yellow "Could not download: $dep"
+    done
+    
+    # دانلود پکیج‌های اضافی مفید
+    apt-get download libc6 libssl3 libpcre3 2>/dev/null || true
+    
+    cd ..
+    
+    log green "✅ .deb packages prepared in 'haproxy-packages' directory"
+    log cyan "📋 Package count: $(ls haproxy-packages/*.deb 2>/dev/null | wc -l)"
+    echo
+}
+
+DEB_SECTION
+            ;;
+    esac
+    
+    case $package_choice in
+        2|4)
+            # اضافه کردن بخش .rpm
+            cat >> "$script_name" << 'RPM_SECTION'
+# ========================================
+# Prepare .rpm packages (CentOS/RHEL/Fedora)
+# ========================================
+
+prepare_rpm_packages() {
+    log cyan "Preparing .rpm packages for CentOS/RHEL/Fedora..."
+    
+    mkdir -p haproxy-packages-rpm
+    cd haproxy-packages-rpm
+    
+    if command -v yum &> /dev/null; then
+        log cyan "Using yum to download packages..."
+        yum install -y yum-utils
+        yumdownloader haproxy
+        
+        # دانلود dependency ها
+        DEPS=$(yum deplist haproxy | grep provider | awk '{print $1}' | sort -u)
+        for dep in $DEPS; do
+            yumdownloader "$dep" 2>/dev/null || log yellow "Could not download: $dep"
+        done
+        
+    elif command -v dnf &> /dev/null; then
+        log cyan "Using dnf to download packages..."
+        dnf install -y dnf-plugins-core
+        dnf download haproxy
+        
+        # دانلود dependency ها
+        DEPS=$(dnf repoquery --requires haproxy | sort -u)
+        for dep in $DEPS; do
+            dnf download "$dep" 2>/dev/null || log yellow "Could not download: $dep"
+        done
+    else
+        log red "Neither yum nor dnf found"
+        return 1
+    fi
+    
+    cd ..
+    
+    log green "✅ .rpm packages prepared in 'haproxy-packages-rpm' directory"
+    log cyan "📋 Package count: $(ls haproxy-packages-rpm/*.rpm 2>/dev/null | wc -l)"
+    echo
+}
+
+RPM_SECTION
+            ;;
+    esac
+    
+    case $package_choice in
+        3|4)
+            # اضافه کردن بخش binary
+            cat >> "$script_name" << 'BINARY_SECTION'
+# ========================================
+# Prepare pre-compiled binary
+# ========================================
+
+prepare_binary() {
+    log cyan "Preparing HAProxy pre-compiled binary..."
+    
+    mkdir -p haproxy-binary
+    
+    # تشخیص معماری
+    local arch=$(uname -m)
+    local haproxy_url=""
+    
+    case $arch in
+        x86_64)
+            haproxy_url="http://www.haproxy.org/download/2.8/bin/linux/x86_64/haproxy-2.8.3"
+            ;;
+        aarch64)
+            haproxy_url="http://www.haproxy.org/download/2.8/bin/linux/aarch64/haproxy-2.8.3"
+            ;;
+        *)
+            log yellow "Architecture $arch may not have pre-built binary"
+            log yellow "You may need to compile from source"
+            return 1
+            ;;
+    esac
+    
+    log cyan "Downloading HAProxy binary for $arch..."
+    if command -v wget &> /dev/null; then
+        wget -O haproxy-binary/haproxy "$haproxy_url" || {
+            log red "Failed to download binary"
+            return 1
+        }
+    elif command -v curl &> /dev/null; then
+        curl -fsSL -o haproxy-binary/haproxy "$haproxy_url" || {
+            log red "Failed to download binary"
+            return 1
+        }
+    else
+        log red "Neither wget nor curl found"
+        return 1
+    fi
+    
+    chmod +x haproxy-binary/haproxy
+    
+    log green "✅ HAProxy binary prepared in 'haproxy-binary' directory"
+    
+    # تست binary
+    if ./haproxy-binary/haproxy -v &>/dev/null; then
+        log green "✅ Binary test successful"
+        ./haproxy-binary/haproxy -v
+    else
+        log yellow "⚠️  Binary test failed - may need different version"
+    fi
+    echo
+}
+
+BINARY_SECTION
+            ;;
+    esac
+    
+    # اضافه کردن بخش اصلی اسکریپت
+    cat >> "$script_name" << 'MAIN_SECTION'
+# ========================================
+# Main execution
+# ========================================
+
+main() {
+    echo "Select preparation method:"
+    
+MAIN_SECTION
+
+    case $package_choice in
+        1)
+            echo '    echo "1) Prepare .deb packages"' >> "$script_name"
+            echo '    read -p "Press Enter to continue..."' >> "$script_name"
+            echo '    prepare_deb_packages' >> "$script_name"
+            ;;
+        2)
+            echo '    echo "1) Prepare .rpm packages"' >> "$script_name"
+            echo '    read -p "Press Enter to continue..."' >> "$script_name"
+            echo '    prepare_rpm_packages' >> "$script_name"
+            ;;
+        3)
+            echo '    echo "1) Prepare binary"' >> "$script_name"
+            echo '    read -p "Press Enter to continue..."' >> "$script_name"
+            echo '    prepare_binary' >> "$script_name"
+            ;;
+        4)
+            cat >> "$script_name" << 'ALL_METHODS'
+    echo "1) Prepare .deb packages (Ubuntu/Debian)"
+    echo "2) Prepare .rpm packages (CentOS/RHEL/Fedora)"
+    echo "3) Prepare binary"
+    echo "4) Prepare all methods"
+    echo
+    read -p "Select [1-4]: " method_choice
+    
+    case $method_choice in
+        1) prepare_deb_packages ;;
+        2) prepare_rpm_packages ;;
+        3) prepare_binary ;;
+        4)
+            prepare_deb_packages
+            prepare_rpm_packages
+            prepare_binary
+            ;;
+        *) log red "Invalid option" ;;
+    esac
+ALL_METHODS
+            ;;
+    esac
+    
+    cat >> "$script_name" << 'SCRIPT_END'
+    
+    echo
+    log green "🎉 Package preparation completed!"
+    echo
+    log cyan "📋 Next steps:"
+    echo "  1. Copy the prepared directories to your target system"
+    echo "  2. Run MoonMesh with HAProxy configuration"
+    echo "  3. Choose appropriate offline installation method"
+    echo
+    log yellow "💡 Prepared directories:"
+    [[ -d "haproxy-packages" ]] && echo "  • haproxy-packages/ (.deb files)"
+    [[ -d "haproxy-packages-rpm" ]] && echo "  • haproxy-packages-rpm/ (.rpm files)"
+    [[ -d "haproxy-binary" ]] && echo "  • haproxy-binary/ (binary file)"
+}
+
+# اجرای تابع اصلی
+main "$@"
+SCRIPT_END
+    
+    # اجازه اجرا
+    chmod +x "$script_name"
+    
+    colorize green "✅ Offline package preparation script created: $script_name"
+    echo
+    colorize cyan "📋 How to use:"
+    echo "  1. Copy this script to a system with internet connection"
+    echo "  2. Run: bash $script_name"
+    echo "  3. Copy generated directories back to target system"
+    echo "  4. Use HAProxy offline installation in MoonMesh"
+    echo
+    colorize yellow "💡 Generated script supports:"
+    case $package_choice in
+        1) echo "  • .deb packages (Ubuntu/Debian)" ;;
+        2) echo "  • .rpm packages (CentOS/RHEL/Fedora)" ;;
+        3) echo "  • Pre-compiled binary" ;;
+        4) 
+            echo "  • .deb packages (Ubuntu/Debian)"
+            echo "  • .rpm packages (CentOS/RHEL/Fedora)"
+            echo "  • Pre-compiled binary"
+            ;;
+    esac
+    
+    press_key
+}
+
 # =============================================================================
 # 12. Network Optimization
 # =============================================================================
@@ -2107,11 +3027,11 @@ main() {
             run_manager_mode
             ;;
         1)
-            # Install mode
+            # Install mode (online)
             run_installer
             ;;
         2)
-            # Auto install mode
+            # Auto install mode (online)
             run_installer "auto"
             ;;
         3)
@@ -2121,6 +3041,10 @@ main() {
         4)
             # Help mode
             show_help
+            ;;
+        5)
+            # Local install mode (offline)
+            run_local_installer
             ;;
         *)
             # Default fallback
