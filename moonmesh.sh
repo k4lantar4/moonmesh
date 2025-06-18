@@ -335,12 +335,23 @@ display_routes() {
     clear
     colorize cyan "🛣️  Live Network Routes Monitor (Ctrl+C to return)"
     echo
+    colorize yellow "💡 Routes show network topology and peer connections"
+    echo
+
+    # Check if service is running first
+    if ! systemctl is-active --quiet easytier.service 2>/dev/null; then
+        colorize red "❌ EasyTier service is not running"
+        echo
+        colorize yellow "💡 Start the service first using 'Quick Connect' or 'Restart Service'"
+        press_key
+        return
+    fi
 
     # Trap Ctrl+C to return to main menu instead of exiting
     trap 'return' INT
 
-    # Use watch for real-time updates without full screen refresh with simplified columns
-    watch -n 0.5 -t "$EASY_CLIENT route -o table 2>/dev/null | cut -c1-120 || echo 'Service not running'"
+    # Use watch for real-time updates with better formatting
+    watch -n 1 -t "$EASY_CLIENT route list 2>/dev/null || echo '❌ Unable to fetch routes - Service may be starting up...'"
 
     # Reset trap
     trap - INT
@@ -993,7 +1004,7 @@ remove_service() {
 
     colorize yellow "⚠️  Are you sure you want to remove EasyTier service? [Y/n]: "
     read -r confirm
-0
+
     if [[ "$confirm" =~ ^[Nn]$ ]]; then
         colorize blue "ℹ️  Operation cancelled"
         press_key
