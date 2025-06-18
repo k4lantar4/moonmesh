@@ -1,10 +1,43 @@
 #!/bin/bash
 
-# 🌐 EasyTier Manager - Similar to MoonMesh
+# 🌐 EasyTier Manager - Unified Installer & Manager
 # K4lantar4 - Inspired by K4lantar4/MoonMesh
-# Fast, Simple, No Complexity
+# Fast, Simple, No Complexity - One Script for Everything
 
 set -e
+
+# Version
+MOONMESH_VERSION="3.0"
+
+# =============================================================================
+# Mode Detection & Routing
+# =============================================================================
+
+# تشخیص حالت اجرا
+detect_mode() {
+    # حالت نصب
+    if [[ "$1" == "--install" ]] || [[ "$1" == "--setup" ]] || [[ "$1" == "-i" ]]; then
+        return 1  # Install mode
+    fi
+    
+    # حالت خودکار نصب
+    if [[ "$1" == "--auto" ]] || [[ "$1" == "--auto-install" ]]; then
+        return 2  # Auto install mode
+    fi
+    
+    # حالت help
+    if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+        return 4  # Help mode
+    fi
+    
+    # بررسی اینکه آیا از محل نصب اجرا می‌شود
+    if [[ "$0" == "/usr/local/bin/moonmesh" ]] && [[ -f "/usr/local/bin/moonmesh" ]]; then
+        return 0  # Manager mode (installed)
+    fi
+    
+    # حالت پیشفرض - نمایش منوی انتخاب
+    return 3  # Selection mode
+}
 
 # Colors
 RED='\033[0;31m'
@@ -22,8 +55,323 @@ CONFIG_DIR="/etc/easytier"
 LOG_FILE="/var/log/easytier.log"
 SERVICE_NAME="easytier"
 EASYTIER_DIR="/usr/local/bin"
+DEST_DIR="/usr/local/bin"  # Installation destination
 EASY_CLIENT="$EASYTIER_DIR/easytier-cli"
 HAPROXY_CONFIG="/etc/haproxy/haproxy.cfg"
+
+# =============================================================================
+# Installation Functions (Integrated from install.sh)
+# =============================================================================
+
+# Log function for installer
+log() {
+    local color="$1"
+    local text="$2"
+    case $color in
+        red) echo -e "${RED}❌ $text${NC}" ;;
+        green) echo -e "${GREEN}✅ $text${NC}" ;;
+        yellow) echo -e "${YELLOW}⚠️  $text${NC}" ;;
+        cyan) echo -e "${CYAN}🔧 $text${NC}" ;;
+        white) echo -e "${WHITE}$text${NC}" ;;
+        *) echo -e "$text" ;;
+    esac
+}
+
+print_install_header() {
+    clear
+    echo -e "${CYAN}🚀 EasyTier & MoonMesh Unified Installer v${MOONMESH_VERSION}${NC}"
+    echo "============================================================"
+}
+
+# بررسی و آماده‌سازی سیستم
+prepare_system() {
+    log cyan "Preparing system..."
+    
+    # بررسی root
+    if [[ $EUID -ne 0 ]]; then
+        log red "Root access required. Usage: sudo $0 --install"
+        exit 1
+    fi
+    
+    # توقف سرویس‌های در حال اجرا (سریع و بدون تعامل)
+    if systemctl is-active --quiet easytier 2>/dev/null; then
+        systemctl stop easytier 2>/dev/null || true
+    fi
+    pkill -f "easytier-core" 2>/dev/null || true
+    sleep 1
+    
+    # نصب پیش‌نیازها (فقط در صورت عدم وجود)
+    local missing_deps=""
+    command -v curl >/dev/null || missing_deps="$missing_deps curl"
+    command -v unzip >/dev/null || missing_deps="$missing_deps unzip"
+    
+    if [[ -n "$missing_deps" ]]; then
+        log yellow "Installing dependencies:$missing_deps"
+        if command -v apt-get >/dev/null; then
+            apt-get update -qq && apt-get install -y $missing_deps >/dev/null 2>&1
+        elif command -v yum >/dev/null; then
+            yum install -y $missing_deps >/dev/null 2>&1
+        elif command -v dnf >/dev/null; then
+            dnf install -y $missing_deps >/dev/null 2>&1
+        elif command -v pacman >/dev/null; then
+            pacman -S --noconfirm $missing_deps >/dev/null 2>&1
+        else
+            log red "Unsupported package manager. Install manually: $missing_deps"
+            exit 1
+        fi
+    fi
+    
+    log green "System prepared"
+}
+
+# دانلود و نصب EasyTier + MoonMesh
+install_easytier_and_moonmesh() {
+    log cyan "Getting latest version and downloading..."
+    
+    # تشخیص معماری
+    local arch=$(uname -m)
+    case $arch in
+        x86_64) arch_suffix="x86_64" ;;
+        armv7l) arch_suffix="armv7" ;;
+        aarch64) arch_suffix="aarch64" ;;
+        *) log red "Unsupported architecture: $arch"; exit 1 ;;
+    esac
+    
+    # دریافت آخرین نسخه
+    local latest_version=$(curl -s https://api.github.com/repos/EasyTier/EasyTier/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    if [[ -z "$latest_version" ]]; then
+        log red "Failed to get latest version"
+        exit 1
+    fi
+    
+    # URLs
+    local download_file="easytier-linux-${arch_suffix}-${latest_version}.zip"
+    local download_url="https://github.com/EasyTier/EasyTier/releases/latest/download/$download_file"
+    
+    log cyan "Downloading EasyTier $latest_version ($arch_suffix)..."
+    
+    # دانلود در دایرکتوری موقت
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+    
+    # دانلود EasyTier
+    if ! curl -fsSL "$download_url" -o "$download_file"; then
+        log red "Download failed: $download_url"
+        exit 1
+    fi
+    
+    # استخراج
+    if ! unzip -q "$download_file"; then
+        log red "Failed to extract files"
+        exit 1
+    fi
+    
+    # یافتن و نصب فایل‌ها
+    local easytier_core=$(find . -name "easytier-core" -type f | head -1)
+    local easytier_cli=$(find . -name "easytier-cli" -type f | head -1)
+    
+    if [[ -z "$easytier_core" ]] || [[ -z "$easytier_cli" ]]; then
+        log red "Binary files not found in archive"
+        exit 1
+    fi
+    
+    # نصب EasyTier binaries
+    chmod +x "$easytier_core" "$easytier_cli"
+    cp "$easytier_core" "$DEST_DIR/" || { log red "Failed to install easytier-core"; exit 1; }
+    cp "$easytier_cli" "$DEST_DIR/" || { log red "Failed to install easytier-cli"; exit 1; }
+    
+    log green "EasyTier $latest_version installed"
+    
+    # نصب MoonMesh manager
+    log cyan "Installing MoonMesh manager..."
+    cp "$0" "$DEST_DIR/moonmesh" || { log red "Failed to install moonmesh manager"; exit 1; }
+    chmod +x "$DEST_DIR/moonmesh"
+    log green "MoonMesh manager installed"
+    
+    # پاک‌سازی
+    cd / && rm -rf "$temp_dir"
+}
+
+# تنظیمات نهایی نصب
+finalize_installation() {
+    log cyan "Finalizing setup..."
+    
+    # ایجاد config directory
+    mkdir -p "$CONFIG_DIR" || true
+    
+    # تست سریع
+    if [[ ! -x "$DEST_DIR/easytier-core" ]] || [[ ! -x "$DEST_DIR/easytier-cli" ]]; then
+        log red "Installation verification failed"
+        exit 1
+    fi
+    
+    log green "Setup completed successfully!"
+}
+
+# نمایش خلاصه نصب
+show_install_summary() {
+    echo
+    log green "🎉 EasyTier & MoonMesh installed successfully!"
+    echo
+    echo "Quick Start:"
+    echo "  sudo moonmesh"
+    echo
+    echo "Manual Usage:"
+    echo "  sudo $DEST_DIR/easytier-core --help"
+    echo "  sudo $DEST_DIR/easytier-cli --help"
+    echo
+    log cyan "Ready to create your mesh network! 🚀"
+}
+
+# تابع اصلی نصب
+run_installer() {
+    local auto_mode="$1"
+    
+    print_install_header
+    
+    if [[ "$auto_mode" != "auto" ]]; then
+        echo
+        log yellow "This will install EasyTier and MoonMesh manager"
+        echo "Components:"
+        echo "  • EasyTier Core & CLI (latest version)"
+        echo "  • MoonMesh Manager (this script)"
+        echo "  • System dependencies (curl, unzip)"
+        echo
+        read -p "Continue with installation? [Y/n]: " confirm_install
+        if [[ "$confirm_install" =~ ^[Nn]$ ]]; then
+            log cyan "Installation cancelled by user"
+            exit 0
+        fi
+    fi
+    
+    # مراحل نصب
+    prepare_system
+    install_easytier_and_moonmesh
+    finalize_installation
+    show_install_summary
+    
+    log green "Installation completed! ⚡"
+}
+
+# =============================================================================
+# Selection Menu for Direct Curl Usage
+# =============================================================================
+
+show_selection_menu() {
+    clear
+    echo -e "${CYAN}🌐 EasyTier & MoonMesh - Quick Access v${MOONMESH_VERSION}${NC}"
+    echo "=================================================="
+    echo
+    echo -e "${YELLOW}You're running this script directly (via curl or download)${NC}"
+    echo
+    echo -e "${GREEN}Choose an option:${NC}"
+    echo
+    echo -e "${CYAN}1) 🚀 Install EasyTier & MoonMesh${NC}"
+    echo "   Download and install everything to your system"
+    echo
+    echo -e "${BLUE}2) 📱 Run Manager (Temporary)${NC}"
+    echo "   Use MoonMesh manager without installing"
+    echo
+    echo -e "${YELLOW}3) ℹ️  Show Installation Commands${NC}"
+    echo "   Display copy-paste installation commands"
+    echo
+    echo -e "${WHITE}0) ❌ Exit${NC}"
+    echo
+    echo -e "${PURPLE}💡 Tip: For permanent installation, choose option 1${NC}"
+    echo
+    read -p "Select [0-3]: " selection_choice
+
+    case $selection_choice in
+        1)
+            echo
+            log cyan "Starting installation..."
+            sleep 1
+            run_installer
+            ;;
+        2)
+            echo
+            log cyan "Running temporary manager..."
+            sleep 1
+            run_manager_mode
+            ;;
+        3)
+            show_installation_commands
+            ;;
+        0)
+            echo
+            log cyan "Goodbye! 👋"
+            exit 0
+            ;;
+        *)
+            echo
+            log red "Invalid option. Please try again."
+            sleep 2
+            show_selection_menu
+            ;;
+    esac
+}
+
+show_installation_commands() {
+    clear
+    echo -e "${CYAN}📋 Installation Commands${NC}"
+    echo "========================"
+    echo
+    echo -e "${GREEN}Method 1: Direct Install${NC}"
+    echo "curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install"
+    echo
+    echo -e "${GREEN}Method 2: Auto Install (no prompts)${NC}"
+    echo "curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto"
+    echo
+    echo -e "${GREEN}Method 3: Download & Install${NC}"
+    echo "wget https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh"
+    echo "sudo bash moonmesh.sh --install"
+    echo
+    echo -e "${YELLOW}After installation, run:${NC}"
+    echo "sudo moonmesh"
+    echo
+    read -p "Press Enter to return to menu..."
+    show_selection_menu
+}
+
+# =============================================================================
+# Help Function
+# =============================================================================
+
+show_help() {
+    clear
+    echo -e "${CYAN}🌐 EasyTier & MoonMesh - Unified Script v${MOONMESH_VERSION}${NC}"
+    echo "======================================================"
+    echo
+    echo -e "${GREEN}USAGE:${NC}"
+    echo "  sudo $0 [OPTION]"
+    echo
+    echo -e "${GREEN}OPTIONS:${NC}"
+    echo -e "${CYAN}  --install, -i${NC}      Install EasyTier & MoonMesh to system"
+    echo -e "${CYAN}  --auto${NC}             Auto install without prompts"
+    echo -e "${CYAN}  --help, -h${NC}         Show this help message"
+    echo
+    echo -e "${GREEN}EXAMPLES:${NC}"
+    echo -e "${YELLOW}  # Install via curl (recommended):${NC}"
+    echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install"
+    echo
+    echo -e "${YELLOW}  # Auto install without prompts:${NC}"
+    echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto"
+    echo
+    echo -e "${YELLOW}  # Run temporarily without installing:${NC}"
+    echo "  curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash"
+    echo
+    echo -e "${YELLOW}  # Local usage after installation:${NC}"
+    echo "  sudo moonmesh"
+    echo
+    echo -e "${GREEN}FEATURES:${NC}"
+    echo "  • One-script solution for installation and management"
+    echo "  • EasyTier mesh network setup and monitoring"
+    echo "  • HAProxy load balancer configuration"
+    echo "  • Network optimization and watchdog"
+    echo "  • Live monitoring and debugging tools"
+    echo
+    echo -e "${PURPLE}For more info: https://github.com/k4lantar4/moonmesh${NC}"
+}
 
 # =============================================================================
 # Helper Functions
@@ -1657,7 +2005,7 @@ display_menu() {
     echo -e "   ║            ${WHITE}EasyTier Manager            ${CYAN}║"
     echo -e "   ║       ${WHITE}Simple Mesh Network Solution    ${CYAN}║"
     echo -e "   ╠════════════════════════════════════════╣"
-    echo -e "   ║  ${WHITE}Version: 2.0 (K4lantar4)           ${CYAN}║"
+    echo -e "   ║  ${WHITE}Version: ${MOONMESH_VERSION} (K4lantar4)           ${CYAN}║"
     echo -e "   ║  ${WHITE}GitHub: k4lantar4/moonmesh          ${CYAN}║"
     echo -e "   ╠════════════════════════════════════════╣"
     echo -e "   ║        $(check_core_status)         ║"
@@ -1711,21 +2059,67 @@ read_option() {
 }
 
 # =============================================================================
-# اجرای اصلی
+# Manager Mode Function
 # =============================================================================
 
-# بررسی دسترسی root
-if [[ $EUID -ne 0 ]]; then
-    colorize red "❌ This script must be run as root"
-    echo "Usage: sudo $0"
-    exit 1
-fi
+run_manager_mode() {
+    # بررسی دسترسی root
+    if [[ $EUID -ne 0 ]]; then
+        colorize red "❌ This script must be run as root"
+        echo "Usage: sudo $0"
+        exit 1
+    fi
 
-# Trap Ctrl+C for main menu to exit
-trap 'colorize green "👋 Goodbye!"; exit 0' INT
+    # Trap Ctrl+C for main menu to exit
+    trap 'colorize green "👋 Goodbye!"; exit 0' INT
 
-# حلقه اصلی
-while true; do
-    display_menu
-    read_option
-done
+    # حلقه اصلی منیجر
+    while true; do
+        display_menu
+        read_option
+    done
+}
+
+# =============================================================================
+# Main Routing System
+# =============================================================================
+
+main() {
+    # تشخیص حالت اجرا
+    detect_mode "$1"
+    local mode_result=$?
+
+    case $mode_result in
+        0)
+            # Manager mode (installed locally)
+            run_manager_mode
+            ;;
+        1)
+            # Install mode
+            run_installer
+            ;;
+        2)
+            # Auto install mode
+            run_installer "auto"
+            ;;
+        3)
+            # Selection mode (curl usage)
+            show_selection_menu
+            ;;
+        4)
+            # Help mode
+            show_help
+            ;;
+        *)
+            # Default fallback
+            show_selection_menu
+            ;;
+    esac
+}
+
+# =============================================================================
+# Script Execution
+# =============================================================================
+
+# اجرای تابع اصلی با پارامترهای ورودی
+main "$@"

@@ -1,44 +1,63 @@
-# 🚀 EasyTier نصب آسان v2.0
+# 🌐 EasyTier & MoonMesh - Unified Manager
 
-**نصب سریع و مدیریت ساده EasyTier - الهام گرفته از Easy-Mesh**
+**One-script solution for EasyTier mesh network installation and management**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Shell Script](https://img.shields.io/badge/shell-bash-green.svg)](https://www.gnu.org/software/bash/)
 [![Platform](https://img.shields.io/badge/platform-linux-blue.svg)](https://www.linux.org/)
 
-## ✨ ویژگی‌های جدید v2.0
+## 🚀 Quick Start
 
-- 🎯 **نصب فوری** - 30 ثانیه تا آماده!
-- 🖥️ **منوی ساده** - 11 گزینه کاربردی
-- ⚙️ **پیشفرض‌های هوشمند** - کمترین ورودی کاربر
-- 🌐 **اتصال سریع** - یک کلیک تا شبکه
-- 📊 **مانیتورینگ زنده** - نمایش real-time
-- 🔧 **عیب‌یابی آسان** - تشخیص خودکار مشکلات
-- 🐕 **واچ داگ پیشرفته** - پایداری و عملکرد هوشمند
-- ⚡ **بهینه‌سازی شبکه** - تنظیمات مخصوص Ubuntu
-
-## 🚀 نصب یک‌کلیکه
-
+### One-Command Install & Run
 ```bash
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash && sudo moonmesh
-
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install
 ```
 
-## 🎮 استفاده فوری
+### Auto Install (No Prompts)
+```bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto
+```
 
+### Run Without Installing
+```bash
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash
+```
+
+### After Installation
 ```bash
 sudo moonmesh
 ```
 
-## 🎯 منوی اصلی
+## 📋 Usage Options
+
+| Command | Description |
+|---------|-------------|
+| `moonmesh.sh --install` | Install EasyTier & MoonMesh |
+| `moonmesh.sh --auto` | Auto install without prompts |
+| `moonmesh.sh --help` | Show help message |
+| `moonmesh.sh` | Show selection menu |
+| `moonmesh` | Run manager (after install) |
+
+## ✨ Features
+
+- **🎯 One-Script Solution** - Install and manage from single script
+- **⚡ Quick Setup** - Ready in 30 seconds
+- **🖥️ Simple Menu** - 11 practical options
+- **📊 Live Monitoring** - Real-time peers and routes
+- **🐕 Smart Watchdog** - Ping-based stability monitoring
+- **⚖️ Load Balancer** - HAProxy integration
+- **🔧 Network Optimization** - Ubuntu-specific tuning
+- **🌐 Multi-Protocol** - UDP/TCP/WebSocket support
+
+## 🎮 Main Menu
 
 ```
 ╔════════════════════════════════════════╗
 ║            EasyTier Manager            ║
 ║       Simple Mesh Network Solution    ║
 ╠════════════════════════════════════════╣
-║  Version: 2.0 (K4lantar4)           ║
-║  GitHub: k4lantar4/moonmesh          ║
+║  Version: 3.0 (K4lantar4)             ║
+║  GitHub: k4lantar4/moonmesh            ║
 ╠════════════════════════════════════════╣
 ║        EasyTier Core Installed        ║
 ╚════════════════════════════════════════╝
@@ -50,314 +69,122 @@ sudo moonmesh
 [5]  Display Secret Key
 [6]  View Service Status
 [7]  Watchdog & Stability
-[8]  Restart Service
-[9]  Remove Service
-[10] HAProxy Load Balancer
-[11] Service Health & Performance
-[12] Network Optimization
+[8]  HAProxy Load Balancer
+[9]  Restart Service
+[10] Remove Service
+[11] Network Optimization
 [0]  Exit
 ```
 
-### 📋 **تغییرات گزینه‌ها:**
+## 🔗 Quick Connect Example
 
-**گزینه 2 - Network Peers (بهبود یافته):**
-```
-[1] 📋 Show Current Peers
-[2] 📊 Live Peers Monitor
-[3] 🔍 Peer Details
-[4] ⬅️  Back to Main Menu
-```
-
-**گزینه 3 - Network Routes (بهبود یافته):**
-- نمایش routes بدون watch
-- وضعیت سرویس
-- IP configuration
-- اطلاعات جامع شبکه
-
-**گزینه 8 - Restart Service (بهبود یافته):**
-- مدیریت خطای پیشرفته
-- نمایش وضعیت قبل و بعد
-- تایید کاربر
-- اطلاعات تشخیصی کامل
-
-## 🌟 اتصال سریع (گزینه 1)
-
-### ورودی‌های پیشفرض جدید:
-- **Local IP:** `10.10.10.1` (پیشفرض جدید)
-- **Port:** `1377` (پیشفرض جدید)
-- **Protocol:** `UDP` (توصیه شده)
-- **Hostname:** `hostname-XXXX` (خودکار)
-- **Secret:** تولید خودکار
-- **IPv6:** غیرفعال (پیشفرض)
-- **Multi-thread:** فعال (پیشفرض)
-
-### مثال اتصال:
 ```bash
-# سرور اول (مرکزی)
+# Server 1 (Central)
 🌐 Peer Addresses: [ENTER for reverse mode]
-🏠 Local IP [10.10.10.1]:
-🏷️  Hostname [server1-2024]:
-🔌 Port [1377]:
-🔐 Network Secret [a1b2c3d4e5f6]: mynetwork123
-🌐 Enable IPv6? [1]: 1 (No)
-⚡ Enable Multi-thread? [1]: 1 (Yes)
+🏠 Local IP [10.10.10.1]: 
+🏷️  Hostname [server1-1234]: 
+🔌 Port [1377]: 
+🔐 Network Secret [auto-generated]: mynetwork123
 
-# سرور دوم (اتصال)
+# Server 2 (Connect to Server 1)
 🌐 Peer Addresses: 1.2.3.4
-🏠 Local IP [10.10.10.2]:
+🏠 Local IP [10.10.10.2]: 
 🔐 Network Secret: mynetwork123
 ```
 
-## 🐕 واچ داگ و پایداری (گزینه 7)
+## 🐕 Watchdog Features
 
-### زیرمنوی واچ داگ:
-```
-[1] 🏓 Ping-based Watchdog (Interactive)
-[2] 📊 Service Health & Performance Monitor
-[3] 🔄 Auto-restart Timer (Cron)
-[4] 🧹 Clean Service Logs
-[5] 🛡️  Stability Optimization
-[6] 🗑️  Remove Watchdog
-[7] ⬅️  Back to Main Menu
-```
+- **🏓 Ping-based Monitoring** - Monitor tunnel connectivity
+- **📊 Health Checks** - Service status and performance
+- **🔄 Auto-restart** - Configurable intervals (30min to weekly)
+- **🧹 Log Management** - Automatic cleanup
+- **⚡ Performance Tuning** - Network optimization
 
-### ویژگی‌های واچ داگ:
-- **🏓 Ping Watchdog:** مانیتورینگ اتصال تانل با IP مشخص (گزینه اصلی)
-- **📊 Health & Performance:** مانیتورینگ جامع سرویس و عملکرد
-- **🔄 Auto-restart Timer:** از 30 دقیقه تا هفتگی
-- **🧹 Log Management:** پاکسازی لاگ‌های قدیمی
-- **🛡️ Stability Optimization:** بهینه‌سازی kernel (بدون واچ داگ خودکار)
-- **🗑️ Complete Removal:** حذف کامل تمام واچ داگ‌ها
+## 🛠️ Advanced Usage
 
-### 🏓 Ping-based Watchdog (گزینه 1):
-```
-🎯 Enter tunnel IP to ping (e.g., 10.10.10.2): 10.10.10.2
-🚨 Enter ping threshold in ms [300]: 300
-⏰ Enter check interval in seconds [8]: 8
-
-📋 Ping Watchdog Configuration:
-  🎯 Target IP: 10.10.10.2
-  🚨 Ping threshold: 300ms
-  ⏰ Check interval: 8s
-  🔄 Action: Restart EasyTier service on failure
-```
-
-**ویژگی‌های Ping Watchdog:**
-- **تست اتصال مداوم:** هر 8 ثانیه (قابل تنظیم)
-- **آستانه پینگ:** 300ms پیشفرض (قابل تنظیم)
-- **ری‌استارت هوشمند:** پس از 3 بار شکست متوالی
-- **لاگ کامل:** /var/log/easytier-ping-watchdog.log
-- **سرویس systemd:** اجرای پایدار در پس‌زمینه
-- **تست اولیه:** بررسی اتصال قبل از راه‌اندازی
-
-## ⚡ بهینه‌سازی شبکه (گزینه 11)
-
-### بهینه‌سازی‌های اعمال شده:
-- **Kernel Parameters:** TCP/UDP buffer sizes
-- **BBR Congestion Control:** برای عملکرد بهتر
-- **TCP FastOpen:** کاهش latency
-- **Firewall Rules:** پورت 1377 UDP/TCP
-- **MTU Optimization:** 1420 برای tunnel
-- **DNS Optimization:** 8.8.8.8, 1.1.1.1
-- **CPU Scheduling:** اولویت بالا برای EasyTier
-- **Network Buffers:** افزایش اندازه buffer
-
-## 📋 مقایسه با نسخه قبلی
-
-| ویژگی | v1.0 (قدیم) | v2.0 (جدید) |
-|--------|-------------|-------------|
-| تعداد گزینه‌های منو | 8 | 11 |
-| واچ داگ | ❌ | ✅ کامل |
-| بهینه‌سازی شبکه | ❌ | ✅ Ubuntu مخصوص |
-| پیشفرض IP | 10.144.144.X | 10.10.10.1 |
-| پیشفرض Port | 11011 | 1377 |
-| IPv6 Control | ❌ | ✅ قابل انتخاب |
-| Multi-thread Control | ❌ | ✅ قابل انتخاب |
-| IP Detection | ساده | ✅ پیشرفته با fallback |
-
-## 🎯 دستورات سریع
-
+### Installation Methods
 ```bash
-# نصب تعاملی (پیشفرض)
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash
+# Method 1: Direct install
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --install
 
-# نصب خودکار (بدون سوال)
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash -s -- --auto
+# Method 2: Auto install
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh | sudo bash -s -- --auto
 
-# نصب محلی
-sudo bash install.sh
-sudo bash install.sh --auto
+# Method 3: Download & install
+wget https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh
+sudo bash moonmesh.sh --install
+```
 
-# مدیریت
+### Management Commands
+```bash
+# Run manager
 sudo moonmesh
 
-# اتصال سریع
-sudo moonmesh  # سپس گزینه 1
+# Quick connect (option 1)
+sudo moonmesh
 
-# نمایش peers
-sudo moonmesh  # سپس گزینه 2
+# Monitor peers (option 2)  
+sudo moonmesh
 
-# واچ داگ
-sudo moonmesh  # سپس گزینه 7
+# Setup watchdog (option 7)
+sudo moonmesh
 
-# بهینه‌سازی
-sudo moonmesh  # سپس گزینه 11
-
-# Ping Watchdog
-sudo moonmesh  # سپس گزینه 7 → گزینه 1
+# Network optimization (option 11)
+sudo moonmesh
 ```
 
-## 🚀 نصب خودکار و حل مشکل Hanging
+## 🔧 Troubleshooting
 
-### 🔧 مشکل قبلی:
-در نسخه‌های قبلی، اگر سرویس EasyTier در حال اجرا بود، اسکریپت نصب منتظر ورودی کاربر می‌ماند و در محیط‌های خودکار (CI/CD) hang می‌کرد.
+### Common Issues
 
-### ✅ راه حل جدید:
+**Connection Problems:**
 ```bash
-# حالت خودکار - بدون انتظار برای ورودی کاربر
-sudo bash install.sh --auto
+# Check firewall
+sudo ufw allow 1377/udp
+sudo ufw allow 1377/tcp
 
-# یا از طریق curl
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/install.sh | sudo bash -s -- --auto
-
-# حالت تعاملی - با timeout 10 ثانیه
-sudo bash install.sh
+# Check service status
+sudo systemctl status easytier
 ```
 
-### 🎯 ویژگی‌های جدید نصب:
-- **⏰ Timeout 10 ثانیه:** در حالت تعاملی، پس از 10 ثانیه خودکار ادامه می‌دهد
-- **🤖 حالت Auto:** کاملاً خودکار، بدون انتظار برای ورودی
-- **📝 لاگ بهتر:** ثبت نوع نصب در لاگ فایل
-- **🔄 مدیریت سرویس:** توقف خودکار سرویس‌های در حال اجرا
-
-## 🔧 پیکربندی خودکار
-
-### تنظیمات پیشفرض:
-- **Encryption:** فعال
-- **Multi-thread:** فعال (قابل تغییر)
-- **IPv6:** غیرفعال (قابل تغییر)
-- **Protocol:** UDP
-- **Restart:** خودکار
-- **Watchdog:** اختیاری
-
-### فایل سرویس تولید شده:
-```ini
-[Unit]
-Description=EasyTier Mesh Network Service
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/easytier-core -i 10.10.10.1 --peers udp://1.2.3.4:1377 --hostname server1-2024 --network-secret mynetwork123 --default-protocol udp --listeners udp://[::]:1377 udp://0.0.0.0:1377 --multi-thread --disable-ipv6
-Restart=always
-RestartSec=5
-User=root
-
-[Install]
-WantedBy=multi-user.target
-```
-
-## 🛠️ عیب‌یابی
-
-### مشکلات رایج:
-
-#### 1. اتصال نشدن peer ها
+**Service Won't Start:**
 ```bash
-# بررسی فایروال
-sudo ufw allow 1377
-sudo firewall-cmd --add-port=1377/udp --permanent
-
-# تست پورت
-sudo moonmesh  # گزینه 10 (Ping Test)
-```
-
-#### 2. سرویس شروع نمی‌شود
-```bash
-# مشاهده لاگ
+# View logs
 sudo journalctl -u easytier.service -f
 
-# ری‌استارت
-sudo moonmesh  # گزینه 8 (Restart Service)
-
-# بررسی سلامت
-sudo moonmesh  # گزینه 7 → گزینه 2 (Check Health)
+# Restart service
+sudo moonmesh  # Option 9
 ```
 
-#### 3. عملکرد پایین
+**Performance Issues:**
 ```bash
-# بهینه‌سازی شبکه
-sudo moonmesh  # گزینه 11 (Network Optimization)
+# Apply network optimization
+sudo moonmesh  # Option 11
 
-# مانیتورینگ عملکرد
-sudo moonmesh  # گزینه 7 → گزینه 2 (Service Health & Performance)
+# Setup ping watchdog
+sudo moonmesh  # Option 7 → Option 1
 ```
 
-#### 4. مشکلات اتصال تانل
-```bash
-# راه‌اندازی Ping Watchdog
-sudo moonmesh  # گزینه 7 → گزینه 1
+## 📊 Default Configuration
 
-# مشاهده لاگ Ping Watchdog
-tail -f /var/log/easytier-ping-watchdog.log
+- **Local IP:** `10.10.10.1`
+- **Port:** `1377`
+- **Protocol:** `UDP` (recommended)
+- **Multi-thread:** Enabled
+- **IPv6:** Disabled
+- **Encryption:** Enabled
+- **Auto-restart:** Enabled
 
-# بررسی وضعیت Ping Watchdog
-systemctl status easytier-ping-watchdog
-```
+## 🤝 Contributing
 
-## 📊 مانیتورینگ پیشرفته
+Inspired by [K4lantar4/MoonMesh](https://github.com/K4lantar4/MoonMesh) and powered by [EasyTier](https://github.com/EasyTier/EasyTier).
 
-### واچ داگ Dashboard:
-```
-📊 EasyTier Service Status
-🟢 Service Status: Active
-✅ Process: Running (PID: 1234)
-✅ Port 1377: Listening
-📊 Memory Usage: 2.1%
-⏰ Service Uptime: 2h 15m 30s
-🌐 Active Connections: 3
-```
+## 📞 Support
 
-### Performance Monitor:
-```
-📈 EasyTier Performance Monitor
-Time: 2024-01-15 14:30:25
-
-🔥 CPU Usage: 1.2%
-💾 Memory: 2.1% 45.2MB
-🌐 Active Connections: 3
-⏰ Service Uptime: 2024-01-15 12:15:00
-```
-
-## 🔄 مهاجرت از v1.0
-
-```bash
-# حذف نسخه قدیم
-sudo systemctl stop easytier
-sudo systemctl disable easytier
-
-# نصب نسخه جدید
-curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
-
-# استفاده
-sudo moonmesh
-```
-
-## 🤝 مشارکت
-
-این پروژه الهام گرفته از [Easy-Mesh](https://github.com/K4lantar4/MoonMesh) است.
-
-### تشکرات:
-- [EasyTier](https://github.com/EasyTier/EasyTier) - پروژه اصلی
-- [K4lantar4/MoonMesh](https://github.com/K4lantar4/MoonMesh) - الهام UX
-
-## 📞 پشتیبانی
-
-- 📖 [مستندات کامل](./docs/)
-- 🐛 [گزارش مشکل](https://github.com/k4lantar4/moonmesh/issues)
-- 💬 [بحث و گفتگو](https://github.com/k4lantar4/moonmesh/discussions)
+- 🐛 [Report Issues](https://github.com/k4lantar4/moonmesh/issues)
+- 💬 [Discussions](https://github.com/k4lantar4/moonmesh/discussions)
+- 📖 [Documentation](https://github.com/k4lantar4/moonmesh)
 
 ---
 
-**ساخته شده با ❤️ توسط K4lantar4** 🧙
-
-*الهام گرفته از سادگی و زیبایی Easy-Mesh*
+**Made with ❤️ by K4lantar4**
