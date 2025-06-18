@@ -237,14 +237,27 @@ manage_running_services() {
         colorize white "   To install new version, these services need to be stopped."
         echo
         
-        # درخواست تأیید بدون timeout
-        echo -n "$(colorize yellow "❓ Stop services and continue installation? [Y/n]: ")"
-        read -r response
-        
-        # اگر کاربر چیزی وارد نکرد، پیشفرض Y
-        if [[ -z "$response" ]]; then
+        # بررسی حالت AUTO
+        if [[ "$AUTO_MODE" == true ]]; then
             response="y"
-            colorize cyan "  💡 Using default: Yes"
+            colorize cyan "🤖 Auto mode: Automatically stopping services"
+        else
+            # درخواست تأیید با timeout 10 ثانیه
+            echo -n "$(colorize yellow "❓ Stop services and continue installation? [Y/n] (auto-yes in 10s): ")"
+            
+            # خواندن ورودی با timeout
+            if read -t 10 -r response; then
+                # کاربر پاسخ داد
+                if [[ -z "$response" ]]; then
+                    response="y"
+                    colorize cyan "  💡 Using default: Yes"
+                fi
+            else
+                # timeout - پیشفرض Yes
+                response="y"
+                echo
+                colorize cyan "  ⏰ Timeout reached - Using default: Yes"
+            fi
         fi
         
         case ${response,,} in
@@ -633,8 +646,17 @@ main() {
     # بررسی root
     if [[ $EUID -ne 0 ]]; then
         colorize red "❌ This script must be run as root"
-        echo "Usage: sudo $0"
+        echo "Usage: sudo $0 [--auto]"
+        echo "  --auto: Skip user confirmations (for automated installs)"
         exit 1
+    fi
+    
+    # بررسی حالت auto
+    AUTO_MODE=false
+    if [[ "$1" == "--auto" ]] || [[ "$1" == "-y" ]] || [[ "$1" == "--yes" ]]; then
+        AUTO_MODE=true
+        colorize cyan "🤖 Running in automated mode - no user confirmations"
+        echo
     fi
 
     print_banner
@@ -644,19 +666,28 @@ main() {
 
     # شروع لاگ
     echo "=== EasyTier Installation Started at $(date) ===" > "$LOG_FILE"
+    if [[ "$AUTO_MODE" == true ]]; then
+        echo "Installation Mode: Automated (--auto)" >> "$LOG_FILE"
+    else
+        echo "Installation Mode: Interactive" >> "$LOG_FILE"
+    fi
 
     # مراحل نصب
     colorize cyan "🔧 Starting EasyTier installation..."
     echo
     
-    colorize white "📋 Installation Steps:"
-    echo "  1️⃣  Get latest version info"
-    echo "  2️⃣  Detect system architecture"
-    echo "  3️⃣  Install prerequisites"
-    echo "  4️⃣  Download and install EasyTier"
-    echo "  5️⃣  Install moonmesh manager"
-    echo "  6️⃣  Create configuration directory"
-    echo "  7️⃣  Test installation"
+    if [[ "$AUTO_MODE" == true ]]; then
+        colorize white "🤖 Automated Installation Mode - Steps will run automatically"
+    else
+        colorize white "📋 Installation Steps:"
+        echo "  1️⃣  Get latest version info"
+        echo "  2️⃣  Detect system architecture"
+        echo "  3️⃣  Install prerequisites"
+        echo "  4️⃣  Download and install EasyTier"
+        echo "  5️⃣  Install moonmesh manager"
+        echo "  6️⃣  Create configuration directory"
+        echo "  7️⃣  Test installation"
+    fi
     echo
 
     colorize cyan "════════════════════════════════════════════════════════════════"
