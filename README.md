@@ -36,25 +36,47 @@ sudo moonmesh
 ║            🌐 EasyTier Manager         ║
 ║        Simple Mesh Network Solution    ║
 ╠════════════════════════════════════════╣
-║  Version: 2.0 (BMad Master)           ║
+║  Version: 2.0 (K4lantar4)           ║
 ║  GitHub: k4lantar4/moonmesh           ║
 ╠════════════════════════════════════════╣
 ║        EasyTier Core Installed        ║
 ╚════════════════════════════════════════╝
 
 [1] 🚀 Quick Connect to Network
-[2] 👥 Display Peers
-[3] 🛣️  Display Routes
+[2] 👥 Network Peers (Enhanced)
+[3] 🛣️  Network Routes & Status
 [4] 🎯 Peer-Center
 [5] 🔐 Display Secret Key
 [6] 📊 View Service Status
 [7] 🐕 Watchdog & Stability
-[8] 🔄 Restart Service
+[8] 🔄 Restart Service (Enhanced)
 [9] 🗑️  Remove Service
 [10] 🏓 Ping Test
 [11] ⚡ Network Optimization
 [0] 🚪 Exit
 ```
+
+### 📋 **تغییرات گزینه‌ها:**
+
+**گزینه 2 - Network Peers (بهبود یافته):**
+```
+[1] 📋 Show Current Peers
+[2] 📊 Live Peers Monitor
+[3] 🔍 Peer Details
+[4] ⬅️  Back to Main Menu
+```
+
+**گزینه 3 - Network Routes (بهبود یافته):**
+- نمایش routes بدون watch
+- وضعیت سرویس
+- IP configuration
+- اطلاعات جامع شبکه
+
+**گزینه 8 - Restart Service (بهبود یافته):**
+- مدیریت خطای پیشرفته
+- نمایش وضعیت قبل و بعد
+- تایید کاربر
+- اطلاعات تشخیصی کامل
 
 ## 🌟 اتصال سریع (گزینه 1)
 
@@ -88,22 +110,43 @@ sudo moonmesh
 
 ### زیرمنوی واچ داگ:
 ```
-[1] 🔧 Setup Watchdog (Auto-restart on failure)
-[2] 📊 Check Service Health
+[1] 🏓 Ping-based Watchdog (Interactive)
+[2] 📊 Service Health & Performance Monitor
 [3] 🔄 Auto-restart Timer (Cron)
 [4] 🧹 Clean Service Logs
-[5] 📈 Performance Monitor
-[6] 🚨 Service Alerts Setup
-[7] 🛡️  Stability Optimization
-[8] 🗑️  Remove Watchdog
+[5] 🛡️  Stability Optimization
+[6] 🗑️  Remove Watchdog
+[7] ⬅️  Back to Main Menu
 ```
 
 ### ویژگی‌های واچ داگ:
-- **بررسی سلامت:** هر 5 دقیقه
-- **راه‌اندازی مجدد خودکار:** در صورت خرابی
-- **مانیتورینگ عملکرد:** CPU, Memory, Network
-- **هشدارهای هوشمند:** برای مشکلات
-- **بهینه‌سازی پایداری:** تنظیمات kernel
+- **🏓 Ping Watchdog:** مانیتورینگ اتصال تانل با IP مشخص (گزینه اصلی)
+- **📊 Health & Performance:** مانیتورینگ جامع سرویس و عملکرد
+- **🔄 Auto-restart Timer:** از 30 دقیقه تا هفتگی
+- **🧹 Log Management:** پاکسازی لاگ‌های قدیمی
+- **🛡️ Stability Optimization:** بهینه‌سازی kernel (بدون واچ داگ خودکار)
+- **🗑️ Complete Removal:** حذف کامل تمام واچ داگ‌ها
+
+### 🏓 Ping-based Watchdog (گزینه 1):
+```
+🎯 Enter tunnel IP to ping (e.g., 10.10.10.2): 10.10.10.2
+🚨 Enter ping threshold in ms [300]: 300
+⏰ Enter check interval in seconds [8]: 8
+
+📋 Ping Watchdog Configuration:
+  🎯 Target IP: 10.10.10.2
+  🚨 Ping threshold: 300ms
+  ⏰ Check interval: 8s
+  🔄 Action: Restart EasyTier service on failure
+```
+
+**ویژگی‌های Ping Watchdog:**
+- **تست اتصال مداوم:** هر 8 ثانیه (قابل تنظیم)
+- **آستانه پینگ:** 300ms پیشفرض (قابل تنظیم)
+- **ری‌استارت هوشمند:** پس از 3 بار شکست متوالی
+- **لاگ کامل:** /var/log/easytier-ping-watchdog.log
+- **سرویس systemd:** اجرای پایدار در پس‌زمینه
+- **تست اولیه:** بررسی اتصال قبل از راه‌اندازی
 
 ## ⚡ بهینه‌سازی شبکه (گزینه 11)
 
@@ -150,6 +193,9 @@ sudo moonmesh  # سپس گزینه 7
 
 # بهینه‌سازی
 sudo moonmesh  # سپس گزینه 11
+
+# Ping Watchdog
+sudo moonmesh  # سپس گزینه 7 → گزینه 1
 ```
 
 ## 🔧 پیکربندی خودکار
@@ -211,7 +257,19 @@ sudo moonmesh  # گزینه 7 → گزینه 2 (Check Health)
 sudo moonmesh  # گزینه 11 (Network Optimization)
 
 # مانیتورینگ عملکرد
-sudo moonmesh  # گزینه 7 → گزینه 5 (Performance Monitor)
+sudo moonmesh  # گزینه 7 → گزینه 2 (Service Health & Performance)
+```
+
+#### 4. مشکلات اتصال تانل
+```bash
+# راه‌اندازی Ping Watchdog
+sudo moonmesh  # گزینه 7 → گزینه 1
+
+# مشاهده لاگ Ping Watchdog
+tail -f /var/log/easytier-ping-watchdog.log
+
+# بررسی وضعیت Ping Watchdog
+systemctl status easytier-ping-watchdog
 ```
 
 ## 📊 مانیتورینگ پیشرفته
@@ -254,11 +312,11 @@ sudo moonmesh
 
 ## 🤝 مشارکت
 
-این پروژه الهام گرفته از [Easy-Mesh](https://github.com/Musixal/Easy-Mesh) است.
+این پروژه الهام گرفته از [Easy-Mesh](https://github.com/K4lantar4/MoonMesh) است.
 
 ### تشکرات:
 - [EasyTier](https://github.com/EasyTier/EasyTier) - پروژه اصلی
-- [Musixal/Easy-Mesh](https://github.com/Musixal/Easy-Mesh) - الهام UX
+- [K4lantar4/MoonMesh](https://github.com/K4lantar4/MoonMesh) - الهام UX
 
 ## 📞 پشتیبانی
 
@@ -268,6 +326,6 @@ sudo moonmesh
 
 ---
 
-**ساخته شده با ❤️ توسط BMad Master** 🧙
+**ساخته شده با ❤️ توسط K4lantar4** 🧙
 
 *الهام گرفته از سادگی و زیبایی Easy-Mesh*

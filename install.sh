@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 🚀 EasyTier Quick Installer v2.0
-# BMad Master - Inspired by Musixal/Easy-Mesh
+# K4lantar4 - Inspired by K4lantar4/MoonMesh
 # نصب سریع، ساده، بدون پیچیدگی
 
 set -e
@@ -44,7 +44,7 @@ print_banner() {
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗"
     echo -e "║                    🚀 ${WHITE}EasyTier Quick Installer${CYAN}              ║"
     echo -e "║                     ${WHITE}Fast & Simple Setup${CYAN}                   ║"
-    echo -e "║                   ${WHITE}BMad Master - v2.0${CYAN}                     ║"
+    echo -e "║                   ${WHITE}K4lantar4 - v2.0${CYAN}                     ║"
     echo -e "╚══════════════════════════════════════════════════════════════╝${NC}"
     echo
 }
@@ -167,7 +167,7 @@ download_and_install() {
 install_manager() {
     colorize yellow "🎛️  Installing moonmesh manager..."
 
-    MOONMESH_URL="https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/moonmesh.sh"
+    MOONMESH_URL="https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh"
 
     if curl -fsSL "$MOONMESH_URL" -o "$DEST_DIR/moonmesh"; then
         chmod +x "$DEST_DIR/moonmesh"
