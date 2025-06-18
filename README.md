@@ -179,6 +179,9 @@ sudo moonmesh
 # نصب
 curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
 
+# اجرای مستقیم بدون نصب
+curl -fsSL https://raw.githubusercontent.com/k4lantar4/moonmesh/main/easytier-installer/install.sh | sudo bash
+
 # مدیریت
 sudo moonmesh
 
