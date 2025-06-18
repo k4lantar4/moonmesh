@@ -231,6 +231,9 @@ download_and_install() {
     # کپی فایل‌ها با backup اگر موجود باشند
     colorize yellow "📁 Installing to $DEST_DIR..."
     
+    # بررسی و مدیریت سرویس‌های در حال اجرا قبل از backup
+    manage_running_services
+    
     # backup فایل‌های موجود
     if [[ -f "$DEST_DIR/easytier-core" ]]; then
         colorize cyan "💾 Backing up existing easytier-core..."
@@ -247,23 +250,36 @@ download_and_install() {
     
     if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
         colorize red "❌ Failed to install easytier-core"
-        colorize yellow "💡 This might be because the file is currently in use."
-        colorize cyan "🔄 Attempting to resolve..."
+        colorize yellow "💡 Trying additional cleanup..."
         
-        # اجرای مدیریت سرویس‌ها
-        manage_running_services
+        # تلاش اضافی برای متوقف کردن پروسه‌ها
+        if pgrep -f "easytier-core" >/dev/null 2>&1; then
+            colorize yellow "🔥 Force stopping remaining easytier-core processes..."
+            pkill -9 -f "easytier-core" 2>/dev/null || true
+            sleep 2
+        fi
         
-        # تلاش مجدد
-        colorize yellow "🔄 Retrying installation..."
+        # بررسی فایل‌های قفل شده
+        if command -v lsof >/dev/null 2>&1; then
+            if lsof "$DEST_DIR/easytier-core" >/dev/null 2>&1; then
+                colorize yellow "🔒 File is still in use, attempting to resolve..."
+                lsof "$DEST_DIR/easytier-core" | tail -n +2 | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+                sleep 1
+            fi
+        fi
+        
+        # تلاش نهایی
+        colorize yellow "🔄 Final retry..."
         if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
             colorize red "❌ Still failed to install easytier-core"
             colorize yellow "💡 Possible solutions:"
             echo "  • Check file permissions: ls -la $DEST_DIR/"
             echo "  • Check disk space: df -h"
-            echo "  • Manual stop: sudo pkill -9 easytier-core"
+            echo "  • Reboot system and try again"
+            echo "  • Manual cleanup: sudo rm -f $DEST_DIR/easytier-core"
             exit 1
         else
-            colorize green "✅ easytier-core installed successfully after retry!"
+            colorize green "✅ easytier-core installed successfully after cleanup!"
         fi
     fi
     
@@ -485,9 +501,6 @@ main() {
         colorize yellow "📦 Installing prerequisites..."
         yum install -y curl unzip bc &> /dev/null
     fi
-
-    # بررسی و مدیریت سرویس‌های در حال اجرا
-    manage_running_services
 
     download_and_install
     install_manager
