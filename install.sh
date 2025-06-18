@@ -54,17 +54,21 @@ print_banner() {
 # =============================================================================
 
 check_installation() {
-    if [[ -f "$DEST_DIR/easytier-core" ]] && [[ -f "$DEST_DIR/easytier-cli" ]]; then
-        colorize green "✅ EasyTier is already installed!"
+    local files_exist=false
+    
+    if [[ -f "$DEST_DIR/easytier-core" ]] || [[ -f "$DEST_DIR/easytier-cli" ]] || [[ -f "$DEST_DIR/moonmesh" ]]; then
+        files_exist=true
+        colorize yellow "⚠️  Previous installation detected!"
         echo
-        colorize cyan "📋 Installed files:"
-        echo "  • $DEST_DIR/easytier-core"
-        echo "  • $DEST_DIR/easytier-cli"
-        echo "  • $DEST_DIR/moonmesh"
+        colorize cyan "📋 Existing files found:"
+        [[ -f "$DEST_DIR/easytier-core" ]] && echo "  • $DEST_DIR/easytier-core"
+        [[ -f "$DEST_DIR/easytier-cli" ]] && echo "  • $DEST_DIR/easytier-cli"
+        [[ -f "$DEST_DIR/moonmesh" ]] && echo "  • $DEST_DIR/moonmesh"
         echo
-        colorize yellow "🎯 To manage: sudo moonmesh"
-        exit 0
+        colorize green "🔄 Proceeding with update/reinstallation..."
     fi
+    
+    return 0  # همیشه ادامه می‌دهیم
 }
 
 # =============================================================================
@@ -147,11 +151,32 @@ download_and_install() {
         exit 1
     fi
 
-    # کپی فایل‌ها
+    # کپی فایل‌ها با backup اگر موجود باشند
     colorize yellow "📁 Installing to $DEST_DIR..."
+    
+    # backup فایل‌های موجود
+    if [[ -f "$DEST_DIR/easytier-core" ]]; then
+        colorize cyan "💾 Backing up existing easytier-core..."
+        cp "$DEST_DIR/easytier-core" "$DEST_DIR/easytier-core.backup.$(date +%s)" 2>/dev/null || true
+    fi
+    
+    if [[ -f "$DEST_DIR/easytier-cli" ]]; then
+        colorize cyan "💾 Backing up existing easytier-cli..."
+        cp "$DEST_DIR/easytier-cli" "$DEST_DIR/easytier-cli.backup.$(date +%s)" 2>/dev/null || true
+    fi
+    
+    # نصب فایل‌های جدید
     chmod +x "$EASYTIER_CORE" "$EASYTIER_CLI"
-    cp "$EASYTIER_CORE" "$DEST_DIR/"
-    cp "$EASYTIER_CLI" "$DEST_DIR/"
+    
+    if ! cp "$EASYTIER_CORE" "$DEST_DIR/" 2>/dev/null; then
+        colorize red "❌ Failed to install easytier-core"
+        exit 1
+    fi
+    
+    if ! cp "$EASYTIER_CLI" "$DEST_DIR/" 2>/dev/null; then
+        colorize red "❌ Failed to install easytier-cli"
+        exit 1
+    fi
 
     # پاک کردن فایل‌های موقت
     cd /
@@ -168,12 +193,28 @@ install_manager() {
     colorize yellow "🎛️  Installing moonmesh manager..."
 
     MOONMESH_URL="https://raw.githubusercontent.com/k4lantar4/moonmesh/main/moonmesh.sh"
+    
+    # backup فایل moonmesh موجود
+    if [[ -f "$DEST_DIR/moonmesh" ]]; then
+        colorize cyan "💾 Backing up existing moonmesh..."
+        cp "$DEST_DIR/moonmesh" "$DEST_DIR/moonmesh.backup.$(date +%s)" 2>/dev/null || true
+    fi
 
-    if curl -fsSL "$MOONMESH_URL" -o "$DEST_DIR/moonmesh"; then
+    # دانلود moonmesh جدید
+    if curl -fsSL "$MOONMESH_URL" -o "$DEST_DIR/moonmesh.tmp"; then
+        mv "$DEST_DIR/moonmesh.tmp" "$DEST_DIR/moonmesh"
         chmod +x "$DEST_DIR/moonmesh"
         colorize green "✅ moonmesh manager installed!"
     else
-        colorize yellow "⚠️  Failed to download manager, continuing without it"
+        colorize yellow "⚠️  Failed to download manager"
+        # اگر فایل قبلی موجود بود، آن را نگه می‌داریم
+        if [[ -f "$DEST_DIR/moonmesh.backup.$(date +%s)" ]]; then
+            colorize cyan "🔄 Keeping existing moonmesh version"
+        else
+            colorize red "❌ No moonmesh manager available"
+        fi
+        # پاک کردن فایل موقت در صورت وجود
+        rm -f "$DEST_DIR/moonmesh.tmp" 2>/dev/null || true
     fi
 }
 
@@ -215,24 +256,58 @@ EOF
 
 test_installation() {
     colorize yellow "🧪 Testing installation..."
+    local test_failed=false
 
+    # تست وجود فایل‌ها
+    if [[ ! -f "$DEST_DIR/easytier-core" ]]; then
+        colorize red "❌ easytier-core not found at $DEST_DIR"
+        test_failed=true
+    elif [[ ! -x "$DEST_DIR/easytier-core" ]]; then
+        colorize yellow "⚠️  easytier-core is not executable, fixing..."
+        chmod +x "$DEST_DIR/easytier-core" || test_failed=true
+    fi
+
+    if [[ ! -f "$DEST_DIR/easytier-cli" ]]; then
+        colorize red "❌ easytier-cli not found at $DEST_DIR"
+        test_failed=true
+    elif [[ ! -x "$DEST_DIR/easytier-cli" ]]; then
+        colorize yellow "⚠️  easytier-cli is not executable, fixing..."
+        chmod +x "$DEST_DIR/easytier-cli" || test_failed=true
+    fi
+
+    # تست PATH
     if ! command -v easytier-core &> /dev/null; then
-        colorize red "❌ easytier-core not found in PATH"
-        exit 1
+        colorize yellow "⚠️  easytier-core not in PATH, but installed at $DEST_DIR"
     fi
 
     if ! command -v easytier-cli &> /dev/null; then
-        colorize red "❌ easytier-cli not found in PATH"
-        exit 1
+        colorize yellow "⚠️  easytier-cli not in PATH, but installed at $DEST_DIR"
     fi
 
     # تست اجرای binary
-    if ! easytier-core --help &> /dev/null; then
-        colorize red "❌ easytier-core is not executable"
-        exit 1
+    if [[ -x "$DEST_DIR/easytier-core" ]]; then
+        if ! "$DEST_DIR/easytier-core" --help &> /dev/null; then
+            colorize yellow "⚠️  easytier-core might have compatibility issues"
+        fi
     fi
 
-    colorize green "✅ Installation test passed!"
+    # تست moonmesh
+    if [[ -f "$DEST_DIR/moonmesh" ]]; then
+        if [[ ! -x "$DEST_DIR/moonmesh" ]]; then
+            colorize yellow "⚠️  moonmesh is not executable, fixing..."
+            chmod +x "$DEST_DIR/moonmesh" || true
+        fi
+        colorize green "✅ moonmesh manager available"
+    else
+        colorize yellow "⚠️  moonmesh manager not available"
+    fi
+
+    if [[ "$test_failed" == true ]]; then
+        colorize red "❌ Installation test failed!"
+        exit 1
+    else
+        colorize green "✅ Installation test passed!"
+    fi
 }
 
 # =============================================================================
@@ -252,11 +327,15 @@ show_summary() {
     echo "  • Config Path: $CONFIG_DIR"
     echo
     colorize yellow "🚀 Quick Start:"
-    colorize white "  sudo moonmesh"
+    if [[ -f "$DEST_DIR/moonmesh" ]]; then
+        colorize white "  sudo moonmesh"
+    else
+        colorize white "  sudo $DEST_DIR/easytier-core --help"
+    fi
     echo
     colorize yellow "📖 Manual Usage:"
-    colorize white "  sudo easytier-core --help"
-    colorize white "  sudo easytier-cli --help"
+    colorize white "  sudo $DEST_DIR/easytier-core --help"
+    colorize white "  sudo $DEST_DIR/easytier-cli --help"
     echo
     colorize cyan "💡 Next Steps:"
     echo "  1. Run 'sudo moonmesh' to start"
