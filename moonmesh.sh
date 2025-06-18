@@ -125,6 +125,14 @@ quick_connect() {
 • Default settings work for most cases"
     echo
 
+    # بررسی وجود سرویس قبلی
+    SERVICE_EXISTS=false
+    if [[ -f "/etc/systemd/system/easytier.service" ]]; then
+        SERVICE_EXISTS=true
+        colorize yellow "⚠️  Existing EasyTier service detected. It will be reconfigured and restarted."
+        echo
+    fi
+
     # دریافت تمام IP های سیستم
     colorize yellow "🔍 Getting your system IPs..."
     ALL_IPS=$(get_all_ips)
@@ -243,10 +251,33 @@ EOF
     # راه‌اندازی سرویس
     systemctl daemon-reload
     systemctl enable easytier.service
-    systemctl start easytier.service
-
-    echo
-    colorize green "✅ EasyTier Network Service Started Successfully!"
+    
+    # اگر سرویس قبلاً موجود بود، restart کن، وگرنه start کن
+    if [[ "$SERVICE_EXISTS" == "true" ]]; then
+        colorize yellow "🔄 Restarting EasyTier service to apply new configuration..."
+        systemctl restart easytier.service
+        sleep 2
+        if systemctl is-active --quiet easytier.service; then
+            colorize green "✅ EasyTier Network Service Restarted Successfully!"
+        else
+            colorize red "❌ Failed to restart EasyTier service"
+            colorize yellow "🔍 Check logs: journalctl -u easytier.service -f"
+            press_key
+            return
+        fi
+    else
+        colorize yellow "🚀 Starting EasyTier service..."
+        systemctl start easytier.service
+        sleep 2
+        if systemctl is-active --quiet easytier.service; then
+            colorize green "✅ EasyTier Network Service Started Successfully!"
+        else
+            colorize red "❌ Failed to start EasyTier service"
+            colorize yellow "🔍 Check logs: journalctl -u easytier.service -f"
+            press_key
+            return
+        fi
+    fi
     echo
     colorize cyan "📋 Connection Details:"
     echo "  🌐 Local IP: $IP_ADDRESS"
@@ -308,8 +339,8 @@ display_routes() {
     # Trap Ctrl+C to return to main menu instead of exiting
     trap 'return' INT
 
-    # Use watch for real-time updates without full screen refresh
-    watch -n 0.5 -t "$EASY_CLIENT route 2>/dev/null || echo 'Service not running'"
+    # Use watch for real-time updates without full screen refresh with simplified columns
+    watch -n 0.5 -t "$EASY_CLIENT route -o table 2>/dev/null | cut -c1-120 || echo 'Service not running'"
 
     # Reset trap
     trap - INT
@@ -406,16 +437,18 @@ watchdog_menu() {
         echo -e "${GREEN}1) 🏓 Ping-based Watchdog (Interactive)${NC}"
         echo -e "${YELLOW}2) 🔄 Auto-restart Timer (Cron)${NC}"
         echo -e "${BLUE}3) 📝 View Live Watchdog Logs${NC}"
-        echo -e "${RED}4) 🗑️  Remove Watchdog${NC}"
+        echo -e "${CYAN}4) 📊 Service Health & Performance${NC}"
+        echo -e "${RED}5) 🗑️  Remove Watchdog${NC}"
         echo -e "${WHITE}0) ⬅️  Back to Main Menu${NC}"
         echo
-        read -p "Select [0-4]: " watchdog_choice
+        read -p "Select [0-5]: " watchdog_choice
 
         case $watchdog_choice in
             1) setup_ping_watchdog ;;
             2) setup_auto_restart ;;
             3) view_watchdog_logs ;;
-            4) remove_watchdog ;;
+            4) service_health_and_performance ;;
+            5) remove_watchdog ;;
             0) trap - INT; return ;;
             *) colorize red "❌ Invalid option" ;;
         esac
@@ -960,7 +993,7 @@ remove_service() {
 
     colorize yellow "⚠️  Are you sure you want to remove EasyTier service? [Y/n]: "
     read -r confirm
-
+0
     if [[ "$confirm" =~ ^[Nn]$ ]]; then
         colorize blue "ℹ️  Operation cancelled"
         press_key
@@ -1627,11 +1660,10 @@ display_menu() {
     colorize purple "   [5]  Display Secret Key"
     colorize white "   [6]  View Service Status"
     colorize magenta "   [7]  Watchdog & Stability"
-    colorize yellow "   [8]  Restart Service"
-    colorize red "   [9]  Remove Service"
-    colorize blue "   [10] HAProxy Load Balancer"
-    colorize cyan "   [11] Service Health & Performance"
-    colorize green "   [12] Network Optimization"
+    colorize blue "   [8]  HAProxy Load Balancer"
+    colorize yellow "   [9]  Restart Service"
+    colorize red "   [10] Remove Service"
+    colorize green "   [11] Network Optimization"
     echo -e "   [0]  Exit"
     echo
 }
@@ -1652,11 +1684,10 @@ read_option() {
         5) show_network_secret ;;
         6) view_service_status ;;
         7) watchdog_menu ;;
-        8) restart_service ;;
-        9) remove_service ;;
-        10) haproxy_menu ;;
-        11) service_health_and_performance ;;
-        12) network_optimization ;;
+        8) haproxy_menu ;;
+        9) restart_service ;;
+        10) remove_service ;;
+        11) network_optimization ;;
         0)
             colorize green "👋 Goodbye!"
             exit 0
