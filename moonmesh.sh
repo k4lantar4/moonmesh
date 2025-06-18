@@ -958,10 +958,10 @@ remove_service() {
         return
     fi
 
-    colorize yellow "⚠️  Are you sure you want to remove EasyTier service? [y/N]: "
+    colorize yellow "⚠️  Are you sure you want to remove EasyTier service? [Y/n]: "
     read -r confirm
 
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    if [[ "$confirm" =~ ^[Nn]$ ]]; then
         colorize blue "ℹ️  Operation cancelled"
         press_key
         return
